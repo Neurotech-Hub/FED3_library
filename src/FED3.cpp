@@ -936,46 +936,62 @@ void FED3::DisplayMouse() {
 **************************************************************************************************************************************************/
 // Create new files on uSD for FED3 settings
 void FED3::CreateFile() {
-  digitalWrite (MOTOR_ENABLE, LOW);  //Disable motor driver and neopixel
-  // see if the card is present and can be initialized:
-  if (!SD.begin(cardSelect, SD_SCK_MHZ(4))) {
-    error(ERROR_SD_INIT_FAIL);
-  }
+    digitalWrite(MOTOR_ENABLE, LOW);  // Disable motor driver and neopixel
+    
+    // Initialize SD card with SdFat
+    if (!fed3SD.begin(cardSelect, SD_SCK_MHZ(4))) {
+        Serial.println("Failed to begin SD card.");
+        error(ERROR_SD_INIT_FAIL);
+        return;
+    }
 
-  // create files if they dont exist and grab device name and ratio
-  configfile = SD.open("DeviceNumber.csv", FILE_WRITE);
-  configfile = SD.open("DeviceNumber.csv", FILE_READ);
-  FED = configfile.parseInt();
-  configfile.close();
+    // Open config file for writing, if it doesn't exist, it will be created
+    if (!configfile.open("DeviceNumber.csv", O_RDWR | O_CREAT)) {
+        Serial.println("Failed to open DeviceNumber.csv");
+        return;
+    }
+    FED = parseIntFromSdFile(configfile);
+    configfile.close();
 
-  ratiofile = SD.open("FEDmode.csv", FILE_WRITE);
-  ratiofile = SD.open("FEDmode.csv", FILE_READ);
-  FEDmode = ratiofile.parseInt();
-  ratiofile.close();
+    // Open ratio file and read FEDmode
+    if (!ratiofile.open("FEDmode.csv", O_RDWR | O_CREAT)) {
+        Serial.println("Failed to open FEDmode.csv");
+        return;
+    }
+    FEDmode = parseIntFromSdFile(ratiofile);
+    ratiofile.close();
 
-  startfile = SD.open("start.csv", FILE_WRITE);
-  startfile = SD.open("start.csv", FILE_READ);
-  timedStart = startfile.parseInt();
-  startfile.close();
+    // Open start file and read timedStart
+    if (!startfile.open("start.csv", O_RDWR | O_CREAT)) {
+        Serial.println("Failed to open start.csv");
+        return;
+    }
+    timedStart = parseIntFromSdFile(startfile);
+    startfile.close();
 
-  stopfile = SD.open("stop.csv", FILE_WRITE);
-  stopfile = SD.open("stop.csv", FILE_READ);
-  timedEnd = stopfile.parseInt();
-  stopfile.close();
+    // Open stop file and read timedEnd
+    if (!stopfile.open("stop.csv", O_RDWR | O_CREAT)) {
+        Serial.println("Failed to open stop.csv");
+        return;
+    }
+    timedEnd = parseIntFromSdFile(stopfile);
+    stopfile.close();
 
-  // Name filename in format F###_MMDDYYNN, where MM is month, DD is day, YY is year, and NN is an incrementing number for the number of files initialized each day
-  strcpy(filename, "FED_____________.CSV");  // placeholder filename
-  getFilename(filename);
+    // Generate a placeholder filename
+    strcpy(filename, "FED_____________.CSV");
+    getFilename(filename);
 }
 
 //Create a new datafile
-void FED3::CreateDataFile () {
-  digitalWrite (MOTOR_ENABLE, LOW);  //Disable motor driver and neopixel
-  getFilename(filename);
-  logfile = SD.open(filename, FILE_WRITE);
-  if ( ! logfile ) {
-    error(ERROR_WRITE_FAIL);
-  }
+void FED3::CreateDataFile() {
+    digitalWrite(MOTOR_ENABLE, LOW);  // Disable motor driver and neopixel
+    getFilename(filename);            // Generate the filename
+
+    // Open logfile for writing
+    if (!logfile.open(filename, O_WRITE | O_CREAT | O_TRUNC)) {
+        error(ERROR_WRITE_FAIL);      // Call error handler if the file cannot be opened
+        return;
+    }
 }
 
 //Write the header to the datafile
@@ -1007,229 +1023,174 @@ void FED3::writeHeader() {
 
 //write a configfile (this contains the FED device number)
 void FED3::writeConfigFile() {
-  digitalWrite (MOTOR_ENABLE, LOW);  //Disable motor driver and neopixel
-  configfile = SD.open("DeviceNumber.csv", FILE_WRITE);
-  configfile.rewind();
-  configfile.println(FED);
-  configfile.flush();
-  configfile.close();
+    digitalWrite(MOTOR_ENABLE, LOW);  // Disable motor driver and neopixel
+
+    // Open configfile directly for writing
+    if (!configfile.open("DeviceNumber.csv", O_WRITE | O_CREAT | O_TRUNC)) {
+        Serial.println("Failed to open DeviceNumber.csv for writing");
+        return;
+    }
+    
+    configfile.rewind();            // Go to the beginning of the file
+    configfile.println(FED);         // Write the FED value
+    configfile.sync();               // Use sync() to ensure data is written
+    configfile.close();              // Close the file
 }
 
-//Write to SD card
 void FED3::logdata() {
-  if (EnableSleep==true){
-    digitalWrite (MOTOR_ENABLE, LOW);  //Disable motor driver and neopixel
-  }
-  SD.begin(cardSelect, SD_SCK_MHZ(4));
-  
-  //fix filename (the .CSV extension can become corrupted) and open file
-  filename[16] = '.';
-  filename[17] = 'C';
-  filename[18] = 'S';
-  filename[19] = 'V';
-  logfile = SD.open(filename, FILE_WRITE);
+    if (EnableSleep == true) {
+        digitalWrite(MOTOR_ENABLE, LOW);  // Disable motor driver and neopixel
+    }
 
-  //if FED3 cannot open file put SD card icon on screen 
-  display.fillRect (68, 1, 15, 22, WHITE); //clear a space
-  if ( ! logfile ) {
+    // Initialize SD card if not already initialized
+    if (!fed3SD.begin(cardSelect, SD_SCK_MHZ(4))) {
+        error(ERROR_SD_INIT_FAIL);  // Handle SD card initialization failure
+        return;
+    }
   
-    //draw SD card icon
-    display.drawRect (70, 2, 11, 14, BLACK);
-    display.drawRect (69, 6, 2, 10, BLACK);
-    display.fillRect (70, 7, 4, 8, WHITE);
-    display.drawRect (72, 4, 1, 3, BLACK);
-    display.drawRect (74, 4, 1, 3, BLACK);
-    display.drawRect (76, 4, 1, 3, BLACK);
-    display.drawRect (78, 4, 1, 3, BLACK);
-    //exclamation point
-    display.fillRect (72, 6, 6, 16, WHITE);
-    display.setCursor(74, 16);
-    display.setTextSize(2);
-    display.setFont(&Org_01);
-    display.print("!");
-    display.setFont(&FreeSans9pt7b);
-    display.setTextSize(1);
-  }
-  
-  /////////////////////////////////
-  // Log data and time 
-  /////////////////////////////////
-  DateTime now = rtc.now();
-  logfile.print(now.month());
-  logfile.print("/");
-  logfile.print(now.day());
-  logfile.print("/");
-  logfile.print(now.year());
-  logfile.print(" ");
-  logfile.print(now.hour());
-  logfile.print(":");
-  if (now.minute() < 10)
-    logfile.print('0');      // Trick to add leading zero for formatting
-  logfile.print(now.minute());
-  logfile.print(":");
-  if (now.second() < 10)
-    logfile.print('0');      // Trick to add leading zero for formatting
-  logfile.print(now.second());
-  logfile.print(",");
-    
-  /////////////////////////////////
-  // Log temp and humidity
-  /////////////////////////////////
-  if (tempSensor == true){
-    sensors_event_t humidity, temp;
-    aht.getEvent(&humidity, &temp);// populate temp and humidity objects with fresh data
-    logfile.print (temp.temperature);
+    // Fix filename (the .CSV extension can become corrupted) and open file
+    filename[16] = '.';
+    filename[17] = 'C';
+    filename[18] = 'S';
+    filename[19] = 'V';
+
+    // Open logfile directly for appending data
+    if (!logfile.open(filename, O_WRITE | O_CREAT | O_APPEND)) {
+        display.fillRect(68, 1, 15, 22, WHITE);  // Clear a space on the display
+
+        // Draw SD card icon to indicate error
+        display.drawRect(70, 2, 11, 14, BLACK);
+        display.drawRect(69, 6, 2, 10, BLACK);
+        display.fillRect(70, 7, 4, 8, WHITE);
+        display.drawRect(72, 4, 1, 3, BLACK);
+        display.drawRect(74, 4, 1, 3, BLACK);
+        display.drawRect(76, 4, 1, 3, BLACK);
+        display.drawRect(78, 4, 1, 3, BLACK);
+
+        // Draw exclamation point
+        display.fillRect(72, 6, 6, 16, WHITE);
+        display.setCursor(74, 16);
+        display.setTextSize(2);
+        display.setFont(&Org_01);
+        display.print("!");
+        display.setFont(&FreeSans9pt7b);
+        display.setTextSize(1);
+        return;
+    }
+
+    // Log data to the file
+    DateTime now = rtc.now();
+    logfile.print(now.month());
+    logfile.print("/");
+    logfile.print(now.day());
+    logfile.print("/");
+    logfile.print(now.year());
+    logfile.print(" ");
+    logfile.print(now.hour());
+    logfile.print(":");
+    if (now.minute() < 10) logfile.print('0');
+    logfile.print(now.minute());
+    logfile.print(":");
+    if (now.second() < 10) logfile.print('0');
+    logfile.print(now.second());
     logfile.print(",");
-    logfile.print (humidity.relative_humidity);
+
+    // Log temp and humidity if tempSensor is true
+    if (tempSensor) {
+        sensors_event_t humidity, temp;
+        aht.getEvent(&humidity, &temp);  // Populate temp and humidity objects with fresh data
+        logfile.print(temp.temperature);
+        logfile.print(",");
+        logfile.print(humidity.relative_humidity);
+        logfile.print(",");
+    }
+
+    // Log library version, session type, device number, and battery voltage
+    logfile.print(VER);
     logfile.print(",");
-  }
-
-  /////////////////////////////////
-  // Log library version and Sketch identifier text
-  /////////////////////////////////
-  logfile.print(VER); // Print library version
-  logfile.print(",");
-  
-  /////////////////////////////////
-  // Log Trial Info
-  /////////////////////////////////
-  logfile.print(sessiontype);  //print Sketch identifier
-  logfile.print(",");
-  
-  /////////////////////////////////
-  // Log FED device number
-  /////////////////////////////////
-  logfile.print(FED); // 
-  logfile.print(",");
-
-  /////////////////////////////////
-  // Log battery voltage
-  /////////////////////////////////
-  ReadBatteryLevel();
-  logfile.print(measuredvbat); // 
-  logfile.print(",");
-
-  /////////////////////////////////
-  // Log motor turns
-  /////////////////////////////////
-  if (Event != "Pellet"){
-    logfile.print(sqrt (-1)); // print NaN if it's not a pellet Event
+    logfile.print(sessiontype);
     logfile.print(",");
-  }
-  else {
-    logfile.print(numMotorTurns+1); // Print the number of attempts to dispense a pellet
+    logfile.print(FED);
     logfile.print(",");
-  }
-  /////////////////////////////////
-  // Log FR ratio
-  /////////////////////////////////
-  if (sessiontype == "Bandit") {
-    logfile.print(pelletsToSwitch);
+    ReadBatteryLevel();
+    logfile.print(measuredvbat);
     logfile.print(",");
-    logfile.print(prob_left);
+
+    // Log motor turns and FR ratio
+    if (Event != "Pellet") {
+        logfile.print(sqrt(-1));  // Print NaN if not a pellet Event
+    } else {
+        logfile.print(numMotorTurns + 1);  // Print number of attempts to dispense a pellet
+    }
     logfile.print(",");
-    logfile.print(prob_right);
+    if (sessiontype == "Bandit") {
+        logfile.print(pelletsToSwitch);
+        logfile.print(",");
+        logfile.print(prob_left);
+        logfile.print(",");
+        logfile.print(prob_right);
+        logfile.print(",");
+    } else {
+        logfile.print(FR);
+        logfile.print(",");
+    }
+
+    // Log event type and active poke side
+    logfile.print(Event);
     logfile.print(",");
-  }
-  else {
-    logfile.print(FR);
+    if (sessiontype == "Bandit") {
+        if (prob_left > prob_right) logfile.print("Left");
+        else if (prob_left < prob_right) logfile.print("Right");
+        else logfile.print("nan");
+    } else {
+        logfile.print(activePoke == 0 ? "Right" : "Left");
+    }
     logfile.print(",");
-  }
-  /////////////////////////////////
-  // Log event type (pellet, right, left)
-  /////////////////////////////////
-  logfile.print(Event); 
-  logfile.print(",");
 
-  /////////////////////////////////
-  // Log Active poke side (left, right)
-  /////////////////////////////////
-  if (sessiontype == "Bandit") {
-    if (prob_left > prob_right) logfile.print("Left");
-    else if (prob_left < prob_right) logfile.print("Right");
-    else if (prob_left == prob_right) logfile.print("nan");
-  }
-  
-  else {
-    if (activePoke == 0)  logfile.print("Right"); //
-    if (activePoke == 1)  logfile.print("Left"); //
-  }
+    // Log left and right counts, pellet counts, block pellet count
+    logfile.print(LeftCount);
+    logfile.print(",");
+    logfile.print(RightCount);
+    logfile.print(",");
+    logfile.print(PelletCount);
+    logfile.print(",");
+    logfile.print(BlockPelletCount);
+    logfile.print(",");
 
-  logfile.print(",");
+    // Log pellet retrieval interval
+    if (Event != "Pellet") {
+        logfile.print(sqrt(-1));  // Print NaN if not a pellet Event
+    } else if (retInterval < 60000) {
+        logfile.print(retInterval / 1000.0);  // Log interval below 1 min
+    } else {
+        logfile.print("Timed_out");
+    }
+    logfile.print(",");
 
+    // Log inter-pellet interval
+    if (Event != "Pellet" || PelletCount < 2) {
+        logfile.print(sqrt(-1));
+    } else {
+        logfile.print(interPelletInterval);
+    }
+    logfile.print(",");
 
-  /////////////////////////////////
-  // Log data (leftCount, RightCount, Pellets)
-  /////////////////////////////////
-  logfile.print(LeftCount); // Print Left poke count
-  logfile.print(",");
-    
-  logfile.print(RightCount); // Print Right poke count
-  logfile.print(",");
+    // Log poke duration
+    if (Event == "Pellet") {
+        logfile.println(sqrt(-1));
+    } else if (Event.startsWith("Left")) {
+        logfile.println(leftInterval / 1000.0);
+    } else if (Event.startsWith("Right")) {
+        logfile.println(rightInterval / 1000.0);
+    } else {
+        logfile.println(sqrt(-1));
+    }
 
-  logfile.print(PelletCount); // print Pellet counts
-  logfile.print(",");
-
-  logfile.print(BlockPelletCount); // print Block Pellet counts
-  logfile.print(",");
-
-  /////////////////////////////////
-  // Log pellet retrieval interval
-  /////////////////////////////////
-  if (Event != "Pellet"){
-    logfile.print(sqrt (-1)); // print NaN if it's not a pellet Event
-  }
-  else if (retInterval < 60000 ) {  // only log retrieval intervals below 1 minute (FED should not record any longer than this)
-    logfile.print(retInterval/1000.000); // print interval between pellet dispensing and being taken
-  }
-  else if (retInterval >= 60000) {
-    logfile.print("Timed_out"); // print "Timed_out" if retreival interval is >60s
-  }
-  else {
-    logfile.print("Error"); // print error if value is < 0 (this shouldn't ever happen)
-  }
-  logfile.print(",");
-  
-  
-  /////////////////////////////////
-  // Inter-Pellet-Interval
-  /////////////////////////////////
-  if ((Event != "Pellet") or (PelletCount < 2)){
-    logfile.print(sqrt (-1)); // print NaN if it's not a pellet Event
-  }
-  else {
-    logfile.print (interPelletInterval);
-  }
-  logfile.print(",");
-      
-  /////////////////////////////////
-  // Poke duration
-  /////////////////////////////////
-  if (Event == "Pellet"){
-    logfile.println(sqrt (-1)); // print NaN 
-  }
-
-  else if ((Event == "Left") or (Event == "LeftShort") or (Event == "LeftWithPellet") or (Event == "LeftinTimeout") or (Event == "LeftDuringDispense")) {  // 
-    logfile.println(leftInterval/1000.000); // print left poke timing
-  }
-
-  else if ((Event == "Right") or (Event == "RightShort") or (Event == "RightWithPellet") or (Event == "RightinTimeout") or (Event == "RightDuringDispense")) {  // 
-    logfile.println(rightInterval/1000.000); // print left poke timing
-  }
-  
-  else {
-    logfile.println(sqrt (-1)); // print NaN 
-  }
-
-  /////////////////////////////////
-  // logfile.flush write to the SD card
-  /////////////////////////////////
-  Blink(GREEN_LED, 25, 2);
-  logfile.flush();
-  logfile.close();
+    // Commit data to SD card and close file
+    Blink(GREEN_LED, 25, 2);
+    logfile.sync();   // Use sync() instead of flush() to write data
+    logfile.close();  // Close the file
 }
-
-
 
 // If any errors are detected with the SD card upon boot this function
 // will blink both LEDs on the Feather M0, turn the NeoPixel into red wipe pattern,
@@ -1256,6 +1217,12 @@ void FED3::error(ErrorCode errorCode) {
 // then the date in MMDDYY followed by "_"
 // then an incrementing number for each new file created on the same date
 void FED3::getFilename(char *filename) {
+  if (!fed3SD.begin(cardSelect, SD_SCK_MHZ(4))) {
+      Serial.println("Failed to begin SD card.");
+      error(ERROR_SD_INIT_FAIL);
+      return;
+  }
+
   DateTime now = rtc.now();
 
   filename[3] = FED / 100 + '0';
@@ -1275,7 +1242,7 @@ void FED3::getFilename(char *filename) {
     filename[14] = '0' + i / 10;
     filename[15] = '0' + i % 10;
 
-    if (! SD.exists(filename)) {
+    if (! fed3SD.exists(filename)) {
       break;
     }
   }
@@ -1548,7 +1515,10 @@ void dateTime(uint16_t* date, uint16_t* time) {
 
 void FED3::begin() {
   Serial.begin(9600);
+  Serial.println("Starting setup...");
+
   // Initialize pins
+  Serial.println("Initializing pins...");
   pinMode(PELLET_WELL, INPUT);
   pinMode(LEFT_POKE, INPUT);
   pinMode(RIGHT_POKE, INPUT);
@@ -1565,56 +1535,78 @@ void FED3::begin() {
   pinMode(BNC_OUT, OUTPUT);
 
   // Initialize RTC
-  rtc.begin();
+  Serial.println("Initializing RTC...");
+  if (!rtc.begin()) {
+    Serial.println("RTC initialization failed!");
+  } else {
+    Serial.println("RTC initialized.");
+  }
 
   // Initialize Neopixels
+  Serial.println("Initializing Neopixels...");
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
+  Serial.println("Neopixels initialized.");
 
   // Initialize stepper
+  Serial.println("Initializing stepper motor...");
   stepper.setSpeed(250);
+  Serial.println("Stepper motor initialized.");
 
   // Initialize display
+  Serial.println("Initializing display...");
   display.begin();
-  const int minorHalfSize = min(display.width(), display.height()) / 2;
   display.setFont(&FreeSans9pt7b);
   display.setRotation(3);
   display.setTextColor(BLACK);
   display.setTextSize(1);
- 
-  //Is AHT20 temp humidity sensor present?
+  Serial.println("Display initialized.");
+
+  // Check if AHT20 temp humidity sensor is present
+  Serial.println("Checking temperature/humidity sensor...");
   if (aht.begin()) {
     tempSensor = true;
+    Serial.println("AHT20 sensor detected.");
+  } else {
+    Serial.println("AHT20 sensor not detected.");
   }
- 
+
   // Initialize SD card and create the datafile
+  Serial.println("Initializing SD card...");
   SdFile::dateTimeCallback(dateTime);
   CreateFile();
+  Serial.println("SD card initialized and file created.");
 
   // Initialize interrupts
+  Serial.println("Attaching interrupts...");
   pointerToFED3 = this;
   attachWakeupInterrupts();
+  Serial.println("Interrupts attached.");
 
   // Create data file for current session
+  Serial.println("Creating data file for current session...");
   CreateDataFile();
   writeHeader();
   EndTime = 0;
-  
-  //read battery level
+  Serial.println("Data file created and header written.");
+
+  // Read battery level
+  Serial.println("Reading battery level...");
   ReadBatteryLevel();
-  
-  // Startup display uses StartScreen() unless ClassicFED3==true, then use ClassicMenu()
-  if (ClassicFED3 == true){
-    ClassicMenu();
-  }
-  if (FED3Menu == true){
+  Serial.println("Battery level read.");
+
+  // Startup display
+  Serial.println("Displaying startup screen...");
+  if (ClassicFED3 == true) {
+    // ClassicMenu();
+  } else if (FED3Menu == true) {
     FED3MenuScreen();
-  }
-  else {
+  } else {
     StartScreen();
   }
   display.clearDisplay();
   display.refresh();
+  Serial.println("Setup complete.");
 }
 
 void FED3::FED3MenuScreen() {
@@ -1799,23 +1791,35 @@ void FED3::ClassicMenu () {
 
 //write a FEDmode file (this contains the last used FEDmode)
 void FED3::writeFEDmode() {
-  ratiofile = SD.open("FEDmode.csv", FILE_WRITE);
-  ratiofile.rewind();
-  ratiofile.println(FEDmode);
-  ratiofile.flush();
-  ratiofile.close();
+    // Open ratiofile and write FEDmode, then sync and close
+    if (ratiofile.open("FEDmode.csv", O_WRITE | O_CREAT)) {
+        ratiofile.seekSet(0);  // Move to the beginning of the file
+        ratiofile.println(FEDmode);
+        ratiofile.sync();  // Commit changes to the SD card
+        ratiofile.close();  // Close the file
+    } else {
+        error(ERROR_WRITE_FAIL);  // Handle error if file fails to open
+    }
 
-  startfile = SD.open("start.csv", FILE_WRITE);
-  startfile.rewind();
-  startfile.println(timedStart);
-  startfile.flush();
-  startfile.close();
+    // Open startfile and write timedStart, then sync and close
+    if (startfile.open("start.csv", O_WRITE | O_CREAT)) {
+        startfile.seekSet(0);
+        startfile.println(timedStart);
+        startfile.sync();
+        startfile.close();
+    } else {
+        error(ERROR_WRITE_FAIL);
+    }
 
-  stopfile = SD.open("stop.csv", FILE_WRITE);
-  stopfile.rewind();
-  stopfile.println(timedEnd);
-  stopfile.flush();
-  stopfile.close();
+    // Open stopfile and write timedEnd, then sync and close
+    if (stopfile.open("stop.csv", O_WRITE | O_CREAT)) {
+        stopfile.seekSet(0);
+        stopfile.println(timedEnd);
+        stopfile.sync();
+        stopfile.close();
+    } else {
+        error(ERROR_WRITE_FAIL);
+    }
 }
 
 /******************************************************************************************************************************************************
@@ -1854,4 +1858,20 @@ void FED3::attachWakeupInterrupts() {
         LowPower.attachInterruptWakeup(digitalPinToInterrupt(LEFT_POKE), outsideLeftTriggerHandler, CHANGE);
         LowPower.attachInterruptWakeup(digitalPinToInterrupt(RIGHT_POKE), outsideRightTriggerHandler, CHANGE);
     #endif
+}
+
+// Helper function to parse an integer from an SdFile
+int FED3::parseIntFromSdFile(SdFile &file) {
+    char buffer[10];
+    int index = 0;
+    while (file.available() && index < sizeof(buffer) - 1) {
+        char c = file.read();
+        if (isdigit(c)) {
+            buffer[index++] = c;
+        } else if (index > 0) {
+            break;
+        }
+    }
+    buffer[index] = '\0';
+    return atoi(buffer);
 }

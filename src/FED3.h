@@ -100,7 +100,6 @@ enum ErrorCode {
     ERROR_READ_FAIL          // Automatically assigned to 4
 };
 
-
 class FED3 {
     // Members
     public:
@@ -114,12 +113,14 @@ class FED3 {
         void run();
         
         // SD logging
-        SdFat SD;
-        File logfile;       // Create file object
-        File ratiofile;     // Create another file object
-        File configfile;    // Create another file object
-        File startfile;     // Create another file object
-        File stopfile;      // Create another file object
+        // encapsulate SdFat Library for conflicts
+        SdFat fed3SD;
+        SdFile logfile;
+        SdFile ratiofile;
+        SdFile configfile;
+        SdFile startfile;
+        SdFile stopfile;
+
         char filename[21];  // Array for file name data logged to named in setup
         void logdata();
         void CreateFile();
@@ -288,6 +289,7 @@ class FED3 {
         void softReset();
         void lowPowerSleep(int sleepMs);
         void attachWakeupInterrupts();
+        int parseIntFromSdFile(SdFile &file);
 
     private:
         static FED3* staticFED;

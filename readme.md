@@ -39,3 +39,9 @@ Check out the example FED3 programs by clicking File > Examples > FED3 <br>
 
 ### 7. Start coding!
 Check out the [functions](https://github.com/KravitzLabDevices/FED3_library/wiki/3.-Functions) and [variables](https://github.com/KravitzLabDevices/FED3_library/wiki/2.-Variables) of the FED3 library to start making custom programs.
+
+
+## Multi-architecture Todo
+- [ ] Adapt battery readings
+- [ ] Adapt temp readings
+- [ ] Utilize neopixel on ESP32
