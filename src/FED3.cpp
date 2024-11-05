@@ -34,18 +34,23 @@
 FED3 *pointerToFED3;
 RTC_PCF8523 rtc;
 
+#if defined(ESP32)
+    #define IRAM_ISR_ATTR IRAM_ATTR
+#elif defined(__arm__)
+    #define IRAM_ISR_ATTR  // Empty for non-ESP32 platforms
+#endif
 
 //  Interrupt handlers
-static void outsidePelletTriggerHandler(void) {
-  pointerToFED3->pelletTrigger();
+static void IRAM_ISR_ATTR outsidePelletTriggerHandler() {
+    pointerToFED3->pelletTrigger();
 }
 
-static void outsideLeftTriggerHandler(void) {
-  pointerToFED3->leftTrigger();
+static void IRAM_ISR_ATTR outsideLeftTriggerHandler() {
+    pointerToFED3->leftTrigger();
 }
 
-static void outsideRightTriggerHandler(void) {
-  pointerToFED3->rightTrigger();
+static void IRAM_ISR_ATTR outsideRightTriggerHandler() {
+    pointerToFED3->rightTrigger();
 }
 
 /**************************************************************************************************************************************************
@@ -871,7 +876,7 @@ void FED3::DisplayNoProgram(){
     colorWipe(strip.Color(0, 0, 0), 25); // clear
     delay (40);
   }
-  NVIC_SystemReset();
+  softReset();
 }
 
 void FED3::DisplayMouse() {
@@ -934,7 +939,7 @@ void FED3::CreateFile() {
   digitalWrite (MOTOR_ENABLE, LOW);  //Disable motor driver and neopixel
   // see if the card is present and can be initialized:
   if (!SD.begin(cardSelect, SD_SCK_MHZ(4))) {
-    error(2);
+    error(ERROR_SD_INIT_FAIL);
   }
 
   // create files if they dont exist and grab device name and ratio
@@ -969,7 +974,7 @@ void FED3::CreateDataFile () {
   getFilename(filename);
   logfile = SD.open(filename, FILE_WRITE);
   if ( ! logfile ) {
-    error(3);
+    error(ERROR_WRITE_FAIL);
   }
 }
 
@@ -1229,7 +1234,7 @@ void FED3::logdata() {
 // If any errors are detected with the SD card upon boot this function
 // will blink both LEDs on the Feather M0, turn the NeoPixel into red wipe pattern,
 // and display "Check SD Card" on the screen
-void FED3::error(uint8_t errno) {
+void FED3::error(ErrorCode errorCode) {
   if (suppressSDerrors == false){
     DisplaySDError();
     while (1) {
@@ -1394,7 +1399,7 @@ void FED3::SetDeviceNumber() {
       }
       writeFEDmode();
       writeConfigFile();
-      NVIC_SystemReset();      // processor software reset
+      softReset();      // processor software reset
     }
   }
 }
@@ -1453,11 +1458,14 @@ void FED3::SetClock(){
 
 //Read battery level
 void FED3::ReadBatteryLevel() {
-  analogReadResolution(10);
-  measuredvbat = analogRead(VBATPIN);
-  measuredvbat *= 2;    // we divided by 2, so multiply back
-  measuredvbat *= 3.3;  // Multiply by 3.3V, our reference voltage
-  measuredvbat /= 1024; // convert to voltage
+  #if defined(ESP32)
+  #elif defined(__arm__)
+    analogReadResolution(10);
+    measuredvbat = analogRead(VBATPIN);
+    measuredvbat *= 2;    // we divided by 2, so multiply back
+    measuredvbat *= 3.3;  // Multiply by 3.3V, our reference voltage
+    measuredvbat /= 1024; // convert to voltage
+  #endif
 }
 
 /**************************************************************************************************************************************************
@@ -1501,7 +1509,7 @@ void FED3::goToSleep() {
   if (EnableSleep==true){
     ReleaseMotor();
     delay (2); //let things settle
-    LowPower.sleep(5000);  //Wake up every 5 sec to check the pellet well
+    lowPowerSleep(5000);  //Wake up every 5 sec to check the pellet well
   }
   pelletTrigger();       //check pellet well to make sure it's not stuck thinking there's a pellet when there's not
 }
@@ -1544,7 +1552,9 @@ void FED3::begin() {
   pinMode(PELLET_WELL, INPUT);
   pinMode(LEFT_POKE, INPUT);
   pinMode(RIGHT_POKE, INPUT);
-  pinMode(VBATPIN, INPUT);
+  #if defined(__arm__)
+    pinMode(VBATPIN, INPUT);
+  #endif
   pinMode(MOTOR_ENABLE, OUTPUT);
   pinMode(GREEN_LED, OUTPUT);
   pinMode(BUZZER, OUTPUT);
@@ -1583,9 +1593,7 @@ void FED3::begin() {
 
   // Initialize interrupts
   pointerToFED3 = this;
-  LowPower.attachInterruptWakeup(digitalPinToInterrupt(PELLET_WELL), outsidePelletTriggerHandler, CHANGE);
-  LowPower.attachInterruptWakeup(digitalPinToInterrupt(LEFT_POKE), outsideLeftTriggerHandler, CHANGE);
-  LowPower.attachInterruptWakeup(digitalPinToInterrupt(RIGHT_POKE), outsideRightTriggerHandler, CHANGE);
+  attachWakeupInterrupts();
 
   // Create data file for current session
   CreateDataFile();
@@ -1721,7 +1729,7 @@ void FED3::SelectMode() {
   delay (500);
   writeFEDmode();
   delay (200);
-  NVIC_SystemReset();      // processor software reset
+  softReset();      // processor software reset
 }
 
 /******************************************************************************************************************************************************
@@ -1808,4 +1816,42 @@ void FED3::writeFEDmode() {
   stopfile.println(timedEnd);
   stopfile.flush();
   stopfile.close();
+}
+
+/******************************************************************************************************************************************************
+                                                                                           Mutliplatform FED Updates
+******************************************************************************************************************************************************/
+
+// software reset for multiple architectures
+void FED3::softReset() {
+  #if defined(ESP32)
+      esp_restart();
+  #elif defined(__arm__)
+      NVIC_SystemReset();
+  #endif
+}
+
+void FED3::lowPowerSleep(int sleepMs) {
+    #if defined(ESP32)
+        // Enable timer wake-up and enter deep sleep
+        esp_sleep_enable_timer_wakeup(static_cast<uint64_t>(sleepMs) * 1000);
+        esp_light_sleep_start();
+    #elif defined(__arm__)
+        // ARM-based boards using Arduino Low Power library
+        LowPower.sleep(sleepMs);  // Use the sleep duration directly in milliseconds
+    #endif
+}
+
+void FED3::attachWakeupInterrupts() {
+    #if defined(ESP32)
+        // ESP32: Attach interrupts for each pin
+        attachInterrupt(digitalPinToInterrupt(PELLET_WELL), outsidePelletTriggerHandler, CHANGE);
+        attachInterrupt(digitalPinToInterrupt(LEFT_POKE), outsideLeftTriggerHandler, CHANGE);
+        attachInterrupt(digitalPinToInterrupt(RIGHT_POKE), outsideRightTriggerHandler, CHANGE);
+    #elif defined(__arm__)
+        // ARM-based boards: Use Arduino Low Power library to attach wake-up interrupts
+        LowPower.attachInterruptWakeup(digitalPinToInterrupt(PELLET_WELL), outsidePelletTriggerHandler, CHANGE);
+        LowPower.attachInterruptWakeup(digitalPinToInterrupt(LEFT_POKE), outsideLeftTriggerHandler, CHANGE);
+        LowPower.attachInterruptWakeup(digitalPinToInterrupt(RIGHT_POKE), outsideRightTriggerHandler, CHANGE);
+    #endif
 }

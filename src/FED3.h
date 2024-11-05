@@ -36,7 +36,13 @@ This device includes hardware and code from:
 #include <Wire.h>
 #include <SPI.h>
 #include <Stepper.h>
-#include <ArduinoLowPower.h>
+
+#if defined(ESP32)
+    #include <esp_sleep.h>
+#elif defined(__arm__)
+    #include <ArduinoLowPower.h>
+#endif
+
 #include "RTClib.h"
 #include <SdFat.h>
 #include <Adafruit_GFX.h>
@@ -46,26 +52,54 @@ This device includes hardware and code from:
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_AHTX0.h>
 
+// Feather M0: https://github.com/adafruit/Adafruit-Feather-M0-Adalogger-PCB/blob/master/Adafruit%20Feather%20M0%20Adalogger%20Pinout.pdf
+// Feather ESP32-S3: https://github.com/adafruit/Adafruit-Feather-ESP32-S3-PCB/blob/main/Adafruit%20Feather%20ESP32-S3%20Pinout.pdf
 // Pin definitions
-#define NEOPIXEL        A1
-#define MOTOR_ENABLE    13
-#define GREEN_LED       8
-#define PELLET_WELL     1
-#define LEFT_POKE       6
-#define RIGHT_POKE      5
-#define BUZZER          0
-#define VBATPIN         A7
-#define cardSelect      4
-#define BNC_OUT         A0
-#define SHARP_SCK       12
-#define SHARP_MOSI      11
-#define SHARP_SS        10
+#if defined(ESP32)
+    #define NEOPIXEL        33
+    #define NEOPIXEL_POWER  21
+    #define MOTOR_ENABLE    13
+    #define GREEN_LED       LED_BUILTIN
+    #define PELLET_WELL     39
+    #define LEFT_POKE       6
+    #define RIGHT_POKE      5
+    #define BUZZER          38
+    // #define VBATPIN         A7 // replaced by MAX17048 Battery Monitor
+    #define cardSelect      A0
+    #define BNC_OUT         1 // BNC_OUT send to NC GPIO for ESP32
+    #define SHARP_SCK       12
+    #define SHARP_MOSI      11
+    #define SHARP_SS        10
+#elif defined(__arm__)
+    #define NEOPIXEL        A1
+    #define MOTOR_ENABLE    13
+    #define GREEN_LED       8
+    #define PELLET_WELL     1
+    #define LEFT_POKE       6
+    #define RIGHT_POKE      5
+    #define BUZZER          0
+    #define VBATPIN         A7
+    #define cardSelect      4
+    #define BNC_OUT         A0
+    #define SHARP_SCK       12
+    #define SHARP_MOSI      11
+    #define SHARP_SS        10
+#endif
+
 
 #define BLACK 0
 #define WHITE 1
 #define STEPS 2038
 
 extern bool Left;
+
+enum ErrorCode {
+    ERROR_SD_INIT_FAIL = 1,  // Explicitly assigned to 1
+    ERROR_FILE_NOT_FOUND,    // Automatically assigned to 2
+    ERROR_WRITE_FAIL,        // Automatically assigned to 3
+    ERROR_READ_FAIL          // Automatically assigned to 4
+};
+
 
 class FED3 {
     // Members
@@ -93,7 +127,7 @@ class FED3 {
         void writeHeader();
         void writeConfigFile();
         void writeFEDmode();
-        void error(uint8_t errno);
+        void error(ErrorCode errorCode);
         void getFilename(char *filename);
         bool suppressSDerrors = false;  //set to true to suppress SD card errors at startup 
 
@@ -249,6 +283,11 @@ class FED3 {
         Stepper stepper = Stepper(STEPS, A2, A3, A4, A5);
         // Temp/Humidity Sensor
         Adafruit_AHTX0 aht;
+
+        // Multiplatform
+        void softReset();
+        void lowPowerSleep(int sleepMs);
+        void attachWakeupInterrupts();
 
     private:
         static FED3* staticFED;
