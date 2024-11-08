@@ -23,7 +23,7 @@ FED3 fed3(sketch);      //Start the FED3 object
 HublinkNode_ESP32 hublinkNode(cardSelect, 1000000);  // init Hublink with clkFreq
 
 // business logic
-#define ENTER_BLE_EVERY 10           // seconds
+#define ENTER_BLE_EVERY 60 * 30      // seconds
 #define LEAVE_BLE_AFTER 30           // seconds
 unsigned long lastBleEntryTime = 0;  // Tracks the last time we entered the BLE sub-loop
 
@@ -86,8 +86,8 @@ void enterBleSubLoop() {
       connectedInitially = true;
     }
 
-    tone(BUZZER, 800, 30);  // Play a short tone to signal ongoing BLE operation
-    delay(200);             // Avoid busy waiting
+    // tone(BUZZER, 800, 30);  // Play a short tone to signal ongoing BLE operation
+    delay(100);             // Avoid busy waiting
   }
 
   BLEDevice::getAdvertising()->stop();
@@ -110,7 +110,7 @@ void loop() {
   if (fed3.Left) {               //If left poke is triggered
     fed3.logLeftPoke();          //Log left poke
     fed3.ConditionedStimulus();  //Deliver conditioned stimulus (tone and lights for 200ms)
-    // fed3.Feed();                 //Deliver pellet
+    fed3.Feed();                 //Deliver pellet
   }
 
   if (fed3.Right) {       //If right poke is triggered
