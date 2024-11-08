@@ -1196,7 +1196,10 @@ void FED3::logdata() {
 // will blink both LEDs on the Feather M0, turn the NeoPixel into red wipe pattern,
 // and display "Check SD Card" on the screen
 void FED3::error(ErrorCode errorCode) {
-  if (suppressSDerrors == false){
+  Serial.print("ERROR: ");
+  Serial.println(errorCode);
+
+  if (suppressSDerrors == false) {
     DisplaySDError();
     while (1) {
       uint8_t i;
@@ -1519,9 +1522,9 @@ void FED3::begin() {
 
   // Initialize pins
   Serial.println("Initializing pins...");
-  pinMode(PELLET_WELL, INPUT);
-  pinMode(LEFT_POKE, INPUT);
-  pinMode(RIGHT_POKE, INPUT);
+  pinMode(PELLET_WELL, INPUT_PULLUP); // protects NC at startup
+  pinMode(LEFT_POKE, INPUT_PULLUP);   // protects NC at startup
+  pinMode(RIGHT_POKE, INPUT_PULLUP);  // protects NC at startup
   #if defined(__arm__)
     pinMode(VBATPIN, INPUT);
   #endif

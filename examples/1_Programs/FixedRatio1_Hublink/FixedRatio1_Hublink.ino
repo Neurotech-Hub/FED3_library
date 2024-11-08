@@ -55,20 +55,26 @@ void setup() {
   Serial.println("Entering setup...");
 
   // 1.
-  SPI.begin(-1, -1, -1, cardSelect);  // init SPI with FED library cardSelect
+  SPI.begin(SCK, MISO, MOSI, cardSelect);  // init SPI with FED library cardSelect
 
   // 2.
   fed3.begin();  //Setup the FED3 hardware
+  fed3.disableSleep();
 
   // 3.
   // ======== HUBLINK_SETUP_START ========
   hublinkNode.initBLE("ESP32_BLE_SD");
   hublinkNode.setBLECallbacks(new ServerCallbacks(), new FilenameCallback());
   // ======== HUBLINK_SETUP_END ========
+
+  // 4.
+  Serial.println("Setup complete.");
 }
 
 // ======== HUBLINK_BLE_ACCESSORY_START ========
 void enterBleSubLoop() {
+  Serial.println("Entering BLE sub-loop.");
+  BLEDevice::getAdvertising()->start();
   unsigned long subLoopStartTime = millis();
   bool connectedInitially = false;
 
@@ -85,7 +91,7 @@ void enterBleSubLoop() {
   }
 
   BLEDevice::getAdvertising()->stop();
-  Serial.println("Leaving BLE sub-loop");
+  Serial.println("Leaving BLE sub-loop.");
 }
 // ======== HUBLINK_BLE_ACCESSORY_END ========
 
@@ -95,8 +101,6 @@ void loop() {
 
   // Check if it's time to enter the BLE sub-loop
   if (currentTime - lastBleEntryTime >= ENTER_BLE_EVERY * 1000) {
-    BLEDevice::getAdvertising()->start();
-    Serial.println("Entering BLE sub-loop");
     enterBleSubLoop();            // Enter and stay in BLE sub-loop for LEAVE_BLE_AFTER seconds
     lastBleEntryTime = millis();  // Reset the last entry time in milliseconds
   }
