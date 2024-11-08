@@ -110,7 +110,7 @@ void loop() {
   if (fed3.Left) {               //If left poke is triggered
     fed3.logLeftPoke();          //Log left poke
     fed3.ConditionedStimulus();  //Deliver conditioned stimulus (tone and lights for 200ms)
-    fed3.Feed();                 //Deliver pellet
+    // fed3.Feed();                 //Deliver pellet
   }
 
   if (fed3.Right) {       //If right poke is triggered
