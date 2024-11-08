@@ -1598,7 +1598,7 @@ void FED3::begin() {
   // Startup display
   Serial.println("Displaying startup screen...");
   if (ClassicFED3 == true) {
-    // ClassicMenu();
+    ClassicMenu();
   } else if (FED3Menu == true) {
     FED3MenuScreen();
   } else {
