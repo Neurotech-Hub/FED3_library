@@ -202,6 +202,7 @@ public:
     void goToSleep();
     void Timeout(int timeout, bool reset = false, bool whitenoise = false);
     int minPokeTime = 0;
+    int maxPokeTime = 20000;
     void randomizeActivePoke(int max);
     int consecutive = 0;
 

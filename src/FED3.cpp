@@ -86,9 +86,12 @@ void FED3::logLeftPoke()
     leftPokeTime = millis();
     LeftCount++;
     leftInterval = 0.0;
+    unsigned long startWait = millis();
     while (digitalRead(LEFT_POKE) == LOW)
     {
-    } // Hang here until poke is clear
+      if (millis() - startWait > maxPokeTime)
+        break; // maxPokeTime timeout
+    }
     leftInterval = (millis() - leftPokeTime);
     UpdateDisplay();
     DisplayLeftInt();
@@ -114,9 +117,12 @@ void FED3::logRightPoke()
     rightPokeTime = millis();
     RightCount++;
     rightInterval = 0.0;
+    unsigned long startWait = millis();
     while (digitalRead(RIGHT_POKE) == LOW)
     {
-    } // Hang here until poke is clear
+      if (millis() - startWait > maxPokeTime)
+        break; // maxPokeTime timeout
+    }
     rightInterval = (millis() - rightPokeTime);
     UpdateDisplay();
     DisplayRightInt();
@@ -235,8 +241,15 @@ void FED3::Feed(int pulse, bool pixelsoff)
       }
 
       // after 60s has elapsed
+      unsigned long pelletWaitStart = millis();
       while (digitalRead(PELLET_WELL) == LOW)
-      { // if pellet is not taken after 60 seconds, wait here and go to sleep
+      {
+        if (millis() - pelletWaitStart > 300000)
+        { // 5 minute timeout
+          Event = "PelletStuck";
+          logdata();
+          break;
+        }
         run();
         // Log pokes while pellet is present
         if (digitalRead(LEFT_POKE) == LOW)
@@ -412,9 +425,12 @@ bool FED3::RotateDisk(int steps)
       if (countAllPokes)
         LeftCount++;
       leftInterval = 0.0;
+      unsigned long startWait = millis();
       while (digitalRead(LEFT_POKE) == LOW)
       {
-      } // Hang here until poke is clear
+        if (millis() - startWait > maxPokeTime)
+          break; // maxPokeTime timeout
+      }
       leftInterval = (millis() - leftPokeTime);
       UpdateDisplay();
       Event = "LeftDuringDispense";
@@ -428,9 +444,12 @@ bool FED3::RotateDisk(int steps)
       if (countAllPokes)
         RightCount++;
       rightInterval = 0.0;
+      unsigned long startWait = millis();
       while (digitalRead(RIGHT_POKE) == LOW)
       {
-      } // Hang here until poke is clear
+        if (millis() - startWait > maxPokeTime)
+          break; // maxPokeTime timeout
+      }
       rightInterval = (millis() - rightPokeTime);
       UpdateDisplay();
       Event = "RightDuringDispense";
@@ -510,8 +529,11 @@ void FED3::Timeout(int seconds, bool reset, bool whitenoise)
       }
       leftInterval = 0.0;
 
+      unsigned long pokeStart = millis();
       while (digitalRead(LEFT_POKE) == LOW)
       {
+        if (millis() - pokeStart > maxPokeTime)
+          break; // Using same maxPokeTime as other poke functions
         if (whitenoise)
         {
           int freq = random(50, 250);
@@ -536,19 +558,24 @@ void FED3::Timeout(int seconds, bool reset, bool whitenoise)
       }
       rightPokeTime = millis();
       rightInterval = 0.0;
-      while (digitalRead(LEFT_POKE) == LOW)
+
+      unsigned long pokeStart = millis();
+      while (digitalRead(RIGHT_POKE) == LOW)
       {
+        if (millis() - pokeStart > maxPokeTime)
+          break; // Fixed from LEFT_POKE
         if (whitenoise)
         {
           int freq = random(50, 250);
           tone(BUZZER, freq, 10);
         }
-        rightInterval = (millis() - rightPokeTime);
-        // UpdateDisplay();
-        Event = "RightinTimeout";
-
-        logdata();
       }
+
+      rightInterval = (millis() - rightPokeTime);
+      // UpdateDisplay();
+      Event = "RightinTimeout";
+
+      logdata();
     }
   }
 
