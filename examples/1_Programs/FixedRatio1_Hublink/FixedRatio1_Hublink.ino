@@ -73,7 +73,11 @@ class ConfigCallback : public BLECharacteristicCallbacks
         Serial.println("BLE_CONNECT_FOR: " + String(hublinkNode.bleConnectFor));
       }
       if (rtc.length() > 0)
-        Serial.println("rtc: " + rtc);
+      {
+        uint32_t timestamp = rtc.toInt();
+        fed3.rtc.adjust(DateTime(timestamp));
+        Serial.println("RTC updated to timestamp: " + rtc);
+      }
     }
     else
     {
