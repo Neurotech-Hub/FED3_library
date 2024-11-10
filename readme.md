@@ -40,8 +40,23 @@ Check out the example FED3 programs by clicking File > Examples > FED3 <br>
 ### 7. Start coding!
 Check out the [functions](https://github.com/KravitzLabDevices/FED3_library/wiki/3.-Functions) and [variables](https://github.com/KravitzLabDevices/FED3_library/wiki/2.-Variables) of the FED3 library to start making custom programs.
 
+## ESP32 Support
+FED3 now supports ESP32-based boards! The library includes:
+- Full compatibility with ESP32 hardware
+- BLE connectivity via [Hublink](https://hublink.cloud) integration
+- Remote configuration including RTC setting
+- All original FED3 functionality
 
-## Multi-architecture Todo
+### Using Hublink
+When using an ESP32-based FED3, you can enable Hublink support for:
+- Wireless data transfer
+- Remote RTC synchronization
+- Remote configuration
+- Real-time monitoring
+
+Check out the FixedRatio1_Hublink example to get started with ESP32 and Hublink features.
+
+### Multi-architecture Todo
 - [ ] Adapt battery readings
 - [ ] Adapt temp readings
 - [ ] Utilize neopixel on ESP32
