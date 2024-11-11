@@ -293,6 +293,9 @@ public:
     void attachWakeupInterrupts();
     int parseIntFromSdFile(SdFile &file);
 
+    // Add to the public section of the FED3 class:
+    void adjustRTC(uint32_t timestamp);
+
 private:
     static FED3 *staticFED;
     static void updatePelletTriggerISR();

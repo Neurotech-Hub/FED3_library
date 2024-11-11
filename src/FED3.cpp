@@ -2260,3 +2260,9 @@ int FED3::parseIntFromSdFile(SdFile &file)
   buffer[index] = '\0';
   return atoi(buffer);
 }
+
+// Add this new method implementation:
+void FED3::adjustRTC(uint32_t timestamp)
+{
+  rtc.adjust(DateTime(timestamp));
+}
