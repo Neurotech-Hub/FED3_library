@@ -821,6 +821,8 @@ void FED3::DisplayDateTime()
 {
   // Print date and time at bottom of the screen
   DateTime now = rtc.now();
+
+  // Print to display
   display.setCursor(0, 135);
   display.fillRect(0, 123, 200, 60, WHITE);
   display.print(now.month());
@@ -2261,8 +2263,23 @@ int FED3::parseIntFromSdFile(SdFile &file)
   return atoi(buffer);
 }
 
-// Add this new method implementation:
 void FED3::adjustRTC(uint32_t timestamp)
 {
   rtc.adjust(DateTime(timestamp));
+
+  DateTime now = rtc.now();
+  // Print same format to serial
+  Serial.print(now.month());
+  Serial.print("/");
+  Serial.print(now.day());
+  Serial.print("/");
+  Serial.print(now.year());
+  Serial.print(" ");
+  if (now.hour() < 10)
+    Serial.print('0');
+  Serial.print(now.hour());
+  Serial.print(":");
+  if (now.minute() < 10)
+    Serial.print('0');
+  Serial.println(now.minute());
 }

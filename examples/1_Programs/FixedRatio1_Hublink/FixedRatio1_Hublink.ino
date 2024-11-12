@@ -79,7 +79,7 @@ void setup() {
   hublinkNode.setNodeChar();
   // ======== HUBLINK_SETUP_END ========
 
-  Serial.println("Setup complete.");
+  Serial.println("Hublink FR1 setup complete.");
 }
 
 // ======== HUBLINK_BLE_ACCESSORY_START ========
