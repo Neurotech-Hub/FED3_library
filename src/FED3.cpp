@@ -29,9 +29,7 @@
 #include "Arduino.h"
 #include "FED3.h"
 
-//  Start FED3 and RTC objects
-FED3 *pointerToFED3;
-RTC_PCF8523 rtc;
+FED3 *FED3::staticFED = nullptr;
 
 #if defined(ESP32)
 #define IRAM_ISR_ATTR IRAM_ATTR
@@ -42,17 +40,17 @@ RTC_PCF8523 rtc;
 //  Interrupt handlers
 static void IRAM_ISR_ATTR outsidePelletTriggerHandler()
 {
-  pointerToFED3->pelletTrigger();
+  FED3::staticFED->pelletTrigger();
 }
 
 static void IRAM_ISR_ATTR outsideLeftTriggerHandler()
 {
-  pointerToFED3->leftTrigger();
+  FED3::staticFED->leftTrigger();
 }
 
 static void IRAM_ISR_ATTR outsideRightTriggerHandler()
 {
-  pointerToFED3->rightTrigger();
+  FED3::staticFED->rightTrigger();
 }
 
 /**************************************************************************************************************************************************
@@ -1124,7 +1122,7 @@ void FED3::CreateFile()
   digitalWrite(MOTOR_ENABLE, LOW); // Disable motor driver and neopixel
 
   // Initialize SD card with SdFat
-  if (!fed3SD.begin(cardSelect, SD_SCK_MHZ(4)))
+  if (!fed3SD.begin(cardSelect, SD_SCK_MHZ(SD_CLOCK_SPEED)))
   {
     Serial.println("Failed to begin SD card.");
     error(ERROR_SD_INIT_FAIL);
@@ -1245,7 +1243,7 @@ void FED3::logdata()
   }
 
   // Initialize SD card if not already initialized
-  if (!fed3SD.begin(cardSelect, SD_SCK_MHZ(4)))
+  if (!fed3SD.begin(cardSelect, SD_SCK_MHZ(SD_CLOCK_SPEED)))
   {
     error(ERROR_SD_INIT_FAIL); // Handle SD card initialization failure
     return;
@@ -1459,7 +1457,7 @@ void FED3::error(ErrorCode errorCode)
 // then an incrementing number for each new file created on the same date
 void FED3::getFilename(char *filename)
 {
-  if (!fed3SD.begin(cardSelect, SD_SCK_MHZ(4)))
+  if (!fed3SD.begin(cardSelect, SD_SCK_MHZ(SD_CLOCK_SPEED)))
   {
     Serial.println("Failed to begin SD card.");
     error(ERROR_SD_INIT_FAIL);
@@ -1693,6 +1691,7 @@ void FED3::SetClock()
 void FED3::ReadBatteryLevel()
 {
 #if defined(ESP32)
+  measuredvbat = maxlipo.cellVoltage();
 #elif defined(__arm__)
   analogReadResolution(10);
   measuredvbat = analogRead(VBATPIN);
@@ -1777,21 +1776,23 @@ void FED3::ReleaseMotor()
                                                                                                Startup Functions
 **************************************************************************************************************************************************/
 // Constructor
-FED3::FED3(void) {};
 
 // Import Sketch variable from the Arduino script
 FED3::FED3(String sketch)
 {
-  sessiontype = sketch;
+  staticFED = this;
+  this->sketch = sketch;
+  this->sessiontype = sketch;
 }
 
 //  dateTime function
-void dateTime(uint16_t *date, uint16_t *time)
+void FED3::dateTime(uint16_t *date, uint16_t *time)
 {
-  DateTime now = rtc.now();
+  if (!staticFED)
+    return; // Safety check
+  DateTime now = staticFED->rtc.now();
   // return date using FAT_DATE macro to format fields
   *date = FAT_DATE(now.year(), now.month(), now.day());
-
   // return time using FAT_TIME macro to format fields
   *time = FAT_TIME(now.hour(), now.minute(), now.second());
 }
@@ -1869,7 +1870,7 @@ void FED3::begin()
 
   // Initialize interrupts
   Serial.println("Attaching interrupts...");
-  pointerToFED3 = this;
+  staticFED = this;
   attachWakeupInterrupts();
   Serial.println("Interrupts attached.");
 
@@ -1882,8 +1883,12 @@ void FED3::begin()
 
   // Read battery level
   Serial.println("Reading battery level...");
+#if defined(ESP32)
+  maxlipo.begin();
+#endif
   ReadBatteryLevel();
-  Serial.println("Battery level read.");
+  Serial.print("Battery level read: ");
+  Serial.println(measuredvbat);
 
   // Startup display
   Serial.println("Displaying startup screen...");
@@ -2282,4 +2287,19 @@ void FED3::adjustRTC(uint32_t timestamp)
   if (now.minute() < 10)
     Serial.print('0');
   Serial.println(now.minute());
+}
+
+void FED3::DisplayBLE(String advName)
+{
+  display.clearDisplay();
+  display.setTextSize(3);
+  display.setTextColor(BLACK);
+  display.setCursor(40, 60);
+  display.println("BLE");
+
+  display.setTextSize(1);
+  display.setCursor(20, 100);
+  display.println(advName);
+
+  display.refresh();
 }

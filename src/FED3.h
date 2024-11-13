@@ -39,6 +39,7 @@ This device includes hardware and code from:
 
 #if defined(ESP32)
 #include <esp_sleep.h>
+#include "Adafruit_MAX1704X.h"
 #elif defined(__arm__)
 #include <ArduinoLowPower.h>
 #endif
@@ -89,6 +90,7 @@ This device includes hardware and code from:
 #define BLACK 0
 #define WHITE 1
 #define STEPS 2038
+#define SD_CLOCK_SPEED 1 // SD card clock speed in MHz
 
 extern bool Left;
 
@@ -104,10 +106,10 @@ class FED3
 {
     // Members
 public:
-    FED3(void);
-    FED3(String sketch);
-    String sketch = "undef";
-    String sessiontype = "undef";
+    static FED3 *staticFED;
+    explicit FED3(String sketch = "undef");
+    String sketch;
+    String &sessiontype = sketch;
 
     void classInterruptHandler(void);
     void begin();
@@ -161,6 +163,7 @@ public:
     void DisplayNoProgram();
     void DisplayMinPoke();
     void DisplayMouse();
+    void DisplayBLE(String advName);
 
     // Startup menu function
     void ClassicMenu();
@@ -293,11 +296,15 @@ public:
     void attachWakeupInterrupts();
     int parseIntFromSdFile(SdFile &file);
 
-    // Add to the public section of the FED3 class:
+    // RTC
     void adjustRTC(uint32_t timestamp);
+    static void dateTime(uint16_t *date, uint16_t *time); // Add this declaration
 
 private:
-    static FED3 *staticFED;
+    RTC_PCF8523 rtc;
+#if defined(ESP32)
+    Adafruit_MAX17048 maxlipo;
+#endif
     static void updatePelletTriggerISR();
     static void updateLeftTriggerISR();
     static void updateRightTriggerISR();
