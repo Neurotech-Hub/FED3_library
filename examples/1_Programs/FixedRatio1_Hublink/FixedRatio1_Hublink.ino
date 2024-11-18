@@ -19,10 +19,10 @@ String sketch = "FR1";  // Unique identifier text for each sketch
 FED3 fed3(sketch);      // Start the FED3 object
 
 // ======== HUBLINK_HEADER_START ========
-#include <HublinkNode_ESP32.h>              // Hublink Library
-HublinkNode_ESP32 hublinkNode(cardSelect);  // optional (cs, clkFreq) parameters
+#include <HublinkNode.h>              // Hublink Library
+HublinkNode hublinkNode(cardSelect);  // optional (cs, clkFreq) parameters
 unsigned long lastBleEntryTime = 0;
-const String advName = "ESP32_BLE_SD";
+const String advName = "HUBNODE";
 
 class ServerCallbacks : public BLEServerCallbacks {
   void onConnect(BLEServer *pServer) override {
