@@ -21,7 +21,7 @@ FED3 fed3(sketch);      // Start the FED3 object
 // ======== HUBLINK_HEADER_START ========
 #include <HublinkNode.h>              // Hublink Library
 HublinkNode hublinkNode(cardSelect);  // optional (cs, clkFreq) parameters
-unsigned long lastBleEntryTime = 0;
+unsigned long lastBleEntryTime;
 const String advName = "HUBNODE";
 
 class ServerCallbacks : public BLEServerCallbacks {
@@ -31,8 +31,6 @@ class ServerCallbacks : public BLEServerCallbacks {
 
   void onDisconnect(BLEServer *pServer) override {
     hublinkNode.onDisconnect();
-    Serial.println("Restarting BLE advertising...");
-    BLEDevice::getAdvertising()->start();
   }
 };
 
@@ -57,35 +55,26 @@ class GatewayCallback : public BLECharacteristicCallbacks {
   }
 };
 
-// Create callback instances as global variables
-ServerCallbacks serverCallbacks;
-FilenameCallback filenameCallback;
-GatewayCallback gatewayCallback;
+// Callback instances
+static ServerCallbacks serverCallbacks;
+static FilenameCallback filenameCallback;
+static GatewayCallback gatewayCallback;
 
 void enterBleSubLoop() {
   Serial.println("Entering BLE sub-loop.");
-  fed3.DisplayBLE(advName);
-  hublinkNode.initBLE(advName, true);  // allow override from hublink.node
-  hublinkNode.setBLECallbacks(&serverCallbacks,
-                              &filenameCallback,
-                              &gatewayCallback);
   hublinkNode.startAdvertising();
 
   unsigned long subLoopStartTime = millis();
   bool didConnect = false;
 
-  // Stay in loop while either:
-  // 1. Within time limit AND haven't connected yet, OR
-  // 2. Device is currently connected
   while ((millis() - subLoopStartTime < hublinkNode.bleConnectFor * 1000 && !didConnect) || hublinkNode.deviceConnected) {
-    hublinkNode.updateConnectionStatus();       // Update connection and watchdog timeout
-    didConnect |= hublinkNode.deviceConnected;  // exit after first connection
-    delay(100);                                 // Avoid busy waiting
+    hublinkNode.updateConnectionStatus();
+    didConnect |= hublinkNode.deviceConnected;
+    delay(100);
   }
 
   hublinkNode.stopAdvertising();
-  hublinkNode.deinitBLE();
-  Serial.println("Leaving BLE sub-loop.");
+  Serial.printf("Leaving BLE sub-loop. Free heap: %d\n", ESP.getFreeHeap());
 }
 // ======== HUBLINK_HEADER_END ========
 
@@ -99,8 +88,13 @@ void setup() {
   fed3.begin();  // Setup the FED3 hardware
   // fed3.disableSleep();
 
-  hublinkNode.setupNode();
+  // One-time BLE initialization
+  hublinkNode.init(advName, true);
+  hublinkNode.setBLECallbacks(&serverCallbacks,
+                              &filenameCallback,
+                              &gatewayCallback);
 
+  lastBleEntryTime = millis();
   Serial.println("Hublink FR1 setup complete.");
 }
 
