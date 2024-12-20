@@ -40,6 +40,7 @@ This device includes hardware and code from:
 #if defined(ESP32)
 #include <esp_sleep.h>
 #include "Adafruit_MAX1704X.h"
+#include <Preferences.h>
 #elif defined(__arm__)
 #include <ArduinoLowPower.h>
 #endif
@@ -52,11 +53,13 @@ This device includes hardware and code from:
 #include <Fonts/Org_01.h>
 #include <Adafruit_NeoPixel.h>
 #include <Adafruit_AHTX0.h>
+#include "ArduinoJson.h"
 
 // Feather M0: https://github.com/adafruit/Adafruit-Feather-M0-Adalogger-PCB/blob/master/Adafruit%20Feather%20M0%20Adalogger%20Pinout.pdf
 // Feather ESP32-S3: https://github.com/adafruit/Adafruit-Feather-ESP32-S3-PCB/blob/main/Adafruit%20Feather%20ESP32-S3%20Pinout.pdf
 // Pin definitions
 #if defined(ESP32)
+#define META_JSON_PATH "/meta.json"
 #define NEOPIXEL 33
 #define NEOPIXEL_POWER 21
 #define MOTOR_ENABLE 13
@@ -72,6 +75,7 @@ This device includes hardware and code from:
 #define SHARP_MOSI 11
 #define SHARP_SS 10
 #elif defined(__arm__)
+#define META_JSON_PATH "meta.json"
 #define NEOPIXEL A1
 #define MOTOR_ENABLE 13
 #define GREEN_LED 8
@@ -111,7 +115,6 @@ public:
     String sketch;
     String &sessiontype = sketch;
 
-    void classInterruptHandler(void);
     void begin();
     void run();
 
@@ -134,6 +137,7 @@ public:
     void error(ErrorCode errorCode);
     void getFilename(char *filename);
     bool suppressSDerrors = false; // set to true to suppress SD card errors at startup
+    String getMetaValue(const char *rootKey, const char *subKey);
 
     // Battery
     float measuredvbat = 1.0;
@@ -194,7 +198,6 @@ public:
     void stopTone();
 
     // Pelet and poke functions
-    void CheckRatio();
     void logLeftPoke();
     void logRightPoke();
     void Feed(int pulse = 0, bool pixelsoff = true);
@@ -300,6 +303,15 @@ public:
     void adjustRTC(uint32_t timestamp);
     static void dateTime(uint16_t *date, uint16_t *time); // Add this declaration
 
+    // Add new RTC-related functions
+    bool initializeRTC();
+    DateTime now();
+    void serialPrintRTC();
+    String getCompileDateTime();
+    bool isNewCompilation();
+    void updateCompilationID();
+    void updateRTC();
+
 private:
     RTC_PCF8523 rtc;
 #if defined(ESP32)
@@ -308,6 +320,14 @@ private:
     static void updatePelletTriggerISR();
     static void updateLeftTriggerISR();
     static void updateRightTriggerISR();
+
+#if defined(ESP32)
+    // ESP32-specific preferences for compilation tracking
+    static inline const char *PREFS_NAMESPACE = "fed3-prefs";
+    static inline const bool PREFS_RO_MODE = true;
+    static inline const bool PREFS_RW_MODE = false;
+    Preferences preferences;
+#endif
 };
 
 #endif
