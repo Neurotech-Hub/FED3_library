@@ -56,7 +56,14 @@ static void IRAM_ISR_ATTR outsideRightTriggerHandler()
 void FED3::begin()
 {
   Serial.begin(9600);
+  delay(1000);
   Serial.println("Starting setup...");
+
+  // Reset I2C bus with slower speed
+  Wire.end();
+  delay(100); // Give devices time to reset
+  Wire.begin();
+  delay(100); // Give devices time to stabilize
 
   // Initialize pins
   Serial.println("Initializing pins...");
@@ -73,7 +80,7 @@ void FED3::begin()
   pinMode(A3, OUTPUT);
   pinMode(A4, OUTPUT);
   pinMode(A5, OUTPUT);
-  pinMode(BNC_OUT, OUTPUT);
+  pinMode(BNC_OUT, OUTPUT); // chip select on ESP32
 
   // Initialize RTC
   Serial.println("Initializing RTC...");

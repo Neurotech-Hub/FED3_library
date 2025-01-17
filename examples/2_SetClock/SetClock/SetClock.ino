@@ -33,9 +33,9 @@
 /********************************************************
   Setup Sharp Memory Display
 ********************************************************/
-#define SHARP_SCK  12
+#define SHARP_SCK 12
 #define SHARP_MOSI 11
-#define SHARP_SS   10
+#define SHARP_SS 10
 #define BLACK 0
 #define WHITE 1
 Adafruit_SharpMem display(SHARP_SCK, SHARP_MOSI, SHARP_SS, 144, 168);
@@ -57,16 +57,19 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(8, NEOPIXEL, NEO_GRBW + NEO_KHZ800);
 /********************************************************
   // Fill the dots one after the other with a color
  ********************************************************/
-void colorWipe(uint32_t c, uint8_t wait) {
-  for (uint16_t i = 0; i < strip.numPixels(); i++) {
+void colorWipe(uint32_t c, uint8_t wait)
+{
+  for (uint16_t i = 0; i < strip.numPixels(); i++)
+  {
     strip.setPixelColor(i, c);
     strip.show();
     delay(wait);
   }
 }
 
-void setup () {
-  Serial.begin(57600);  //open serial monitor so you can see time output on computer via USB
+void setup()
+{
+  Serial.begin(57600); // open serial monitor so you can see time output on computer via USB
 
   /********************************************************
     Start neopixel library
@@ -78,9 +81,11 @@ void setup () {
   /********************************************************
       Set RTC to computer date and time
     ********************************************************/
-  if (! rtc.begin()) {
-    Serial.println("Couldn't find RTC");  //This will trigger if RTC cannot be found
-    while (1);
+  if (!rtc.begin())
+  {
+    Serial.println("Couldn't find RTC"); // This will trigger if RTC cannot be found
+    while (1)
+      ;
   }
 
   rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
@@ -89,8 +94,7 @@ void setup () {
     The below line sets the RTC with an explicit date & time, for example to set
     January 21, 2014 at 3am you would call:
    ********************************************************/
-  //rtc.adjust(DateTime(2018, 8, 24, 11, 20, 0));
-
+  // rtc.adjust(DateTime(2018, 8, 24, 11, 20, 0));
 
   /********************************************************
      Start, clear, and setup the display
@@ -105,7 +109,8 @@ void setup () {
   display.refresh();
 }
 
-void loop () {
+void loop()
+{
   digitalWrite(ENABLE_RGB, LOW);
   DateTime now = rtc.now();
 
@@ -113,19 +118,19 @@ void loop () {
        Display date and time of RTC
      ********************************************************/
   display.setCursor(1, 40);
-  display.print ("RTC set to:");
+  display.print("RTC set to:");
   display.setCursor(1, 40);
-  display.print ("RTC set to:");
+  display.print("RTC set to:");
 
-  display.fillRoundRect (0, 45, 400, 25, 1, WHITE);
-  //display.refresh();
+  display.fillRoundRect(0, 45, 400, 25, 1, WHITE);
+  // display.refresh();
   display.setCursor(1, 60);
   if (now.month() < 10)
-    display.print('0');      // Trick to add leading zero for formatting
+    display.print('0'); // Trick to add leading zero for formatting
   display.print(now.month(), DEC);
   display.print("/");
   if (now.day() < 10)
-    display.print('0');      // Trick to add leading zero for formatting
+    display.print('0'); // Trick to add leading zero for formatting
   display.print(now.day(), DEC);
   display.print("/");
   display.print(now.year(), DEC);
@@ -133,26 +138,26 @@ void loop () {
   display.print(now.hour(), DEC);
   display.print(":");
   if (now.minute() < 10)
-    display.print('0');      // Trick to add leading zero for formatting
+    display.print('0'); // Trick to add leading zero for formatting
   display.print(now.minute(), DEC);
   display.print(":");
   if (now.second() < 10)
-    display.print('0');      // Trick to add leading zero for formatting
+    display.print('0'); // Trick to add leading zero for formatting
   display.println(now.second(), DEC);
 
   display.drawFastHLine(30, 80, 100, BLACK);
 
   display.setCursor(1, 110);
-  display.print ("Reflash device code");
+  display.print("Reflash device code");
   display.setCursor(2, 110);
-  display.print ("Reflash device code");
+  display.print("Reflash device code");
   display.refresh();
-  //delay (200);
+  // delay (200);
 
   /********************************************************
        Print to Serial monitor as well
      ********************************************************/
-  Serial.println ("RTC set to: ");
+  Serial.println("RTC set to: ");
   Serial.print(now.month(), DEC);
   Serial.print('/');
   Serial.print(now.day(), DEC);
@@ -168,11 +173,11 @@ void loop () {
   Serial.print(now.second(), DEC);
   Serial.println();
   Serial.println();
-  //delay(500);
+  // delay(500);
 
   /********************************************************
     // Randomly fill the neopixel bar with color
    ********************************************************/
   colorWipe(strip.Color(random(0, 5), random(0, 5), random(0, 5)), 40); // Color wipe
-  colorWipe(strip.Color(0, 0, 0), 80); // OFF
+  colorWipe(strip.Color(0, 0, 0), 80);                                  // OFF
 }
