@@ -109,20 +109,6 @@ void FED3::dateTime(uint16_t *date, uint16_t *time)
     *time = FAT_TIME(now.hour(), now.minute(), now.second());
 }
 
-// Read battery level
-void FED3::ReadBatteryLevel()
-{
-#if defined(ESP32)
-    measuredvbat = maxlipo.cellVoltage();
-#elif defined(__arm__)
-    analogReadResolution(10);
-    measuredvbat = analogRead(VBATPIN);
-    measuredvbat *= 2;    // we divided by 2, so multiply back
-    measuredvbat *= 3.3;  // Multiply by 3.3V, our reference voltage
-    measuredvbat /= 1024; // convert to voltage
-#endif
-}
-
 // Get current time
 DateTime FED3::now()
 {
