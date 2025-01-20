@@ -157,7 +157,14 @@ void FED3::begin()
 #if defined(ESP32)
   maxlipo.begin();
 #endif
-  ReadBatteryLevel();
+  // Try reading battery up to 3 times during initialization
+  for (int i = 0; i < 3; i++)
+  {
+    ReadBatteryLevel();
+    if (measuredvbat != 0.0)
+      break;
+    delay(10); // Short delay between attempts
+  }
   Serial.print("Battery level read: ");
   Serial.println(measuredvbat);
 
@@ -657,4 +664,18 @@ void FED3::DisplayBLE(String advName)
   display.println(advName);
 
   display.refresh();
+}
+
+// Read battery level
+void FED3::ReadBatteryLevel()
+{
+#if defined(ESP32)
+  measuredvbat = maxlipo.cellVoltage();
+#elif defined(__arm__)
+  analogReadResolution(10);
+  measuredvbat = analogRead(VBATPIN);
+  measuredvbat *= 2;    // we divided by 2, so multiply back
+  measuredvbat *= 3.3;  // Multiply by 3.3V, our reference voltage
+  measuredvbat /= 1024; // convert to voltage
+#endif
 }
