@@ -87,6 +87,14 @@ void FED3::begin()
   if (!initializeRTC())
   {
     Serial.println("RTC initialization failed!");
+    // do not proceed with setup if RTC initialization fails
+    while (true)
+    {
+      digitalWrite(GREEN_LED, HIGH);
+      delay(100);
+      digitalWrite(GREEN_LED, LOW);
+      delay(100);
+    }
   }
   else
   {
@@ -664,18 +672,4 @@ void FED3::DisplayBLE(String advName)
   display.println(advName);
 
   display.refresh();
-}
-
-// Read battery level
-void FED3::ReadBatteryLevel()
-{
-#if defined(ESP32)
-  measuredvbat = maxlipo.cellVoltage();
-#elif defined(__arm__)
-  analogReadResolution(10);
-  measuredvbat = analogRead(VBATPIN);
-  measuredvbat *= 2;    // we divided by 2, so multiply back
-  measuredvbat *= 3.3;  // Multiply by 3.3V, our reference voltage
-  measuredvbat /= 1024; // convert to voltage
-#endif
 }

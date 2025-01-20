@@ -14,18 +14,26 @@ bool FED3::initializeRTC()
 
 #if defined(ESP32)
     Serial.println("Starting preferences...");
-    // Single preferences session
     if (!preferences.begin(PREFS_NAMESPACE, false))
     {
         Serial.println("ERROR: Failed to initialize preferences");
         return false;
     }
 
-    if (isNewCompilation())
+    // Only check for new compilation on hard reset
+    esp_reset_reason_t reset_reason = esp_reset_reason();
+    bool isWakeFromSleep = (reset_reason == ESP_SLEEP_WAKEUP_TIMER);
+
+    if (!isWakeFromSleep && isNewCompilation())
     {
         Serial.println("New compilation detected - updating RTC");
         updateRTC();
         updateCompilationID();
+    }
+    else if (rtc.lostPower())
+    {
+        Serial.println("RTC lost power, updating time from compilation");
+        updateRTC();
     }
     else
     {
@@ -37,16 +45,15 @@ bool FED3::initializeRTC()
 
     // Initialize ESP32's internal RTC
     DateTime now = rtc.now();
-    ESP32Time rtc_internal(0); // offset 0
+    ESP32Time rtc_internal(0);
     rtc_internal.setTime(
-        now.second(), // seconds
-        now.minute(), // minutes
-        now.hour(),   // hours
-        now.day(),    // day
-        now.month(),  // month
-        now.year(),   // year
-        0             // milliseconds
-    );
+        now.second(),
+        now.minute(),
+        now.hour(),
+        now.day(),
+        now.month(),
+        now.year(),
+        0);
     Serial.println("ESP32 internal RTC synchronized");
 #endif
 
@@ -104,7 +111,14 @@ void FED3::serialPrintRTC()
 // Get compilation date/time
 String FED3::getCompileDateTime()
 {
-    return String(__DATE__) + " " + String(__TIME__);
+    // Force format to be consistent and add milliseconds to reduce caching
+    char compileDateTime[32];
+    snprintf(compileDateTime, sizeof(compileDateTime),
+             "%s %s.%lu",
+             __DATE__, __TIME__, millis()); // Add millis() to force uniqueness
+
+    Serial.println("Build timestamp: " + String(compileDateTime));
+    return String(compileDateTime);
 }
 
 // Check if this is a new compilation
@@ -147,14 +161,23 @@ void FED3::updateRTC()
     month = (strstr(month_names, monthStr) - month_names) / 3 + 1;
     sscanf(__TIME__, "%d:%d:%d", &hour, &minute, &second);
 
-    Serial.printf("Setting RTC to: %04d-%02d-%02d %02d:%02d:%02d\n",
+    Serial.printf("Compile time: %04d-%02d-%02d %02d:%02d:%02d\n",
                   year, month, day, hour, minute, second);
 
-    rtc.adjust(DateTime(year, month, day, hour, minute, second));
+    // Add upload delay compensation (2 seconds)
+    DateTime compileTime(year, month, day, hour, minute, second);
+    // add 30 seconds to the compile time to account for upload delay
+    DateTime compensatedTime = compileTime + TimeSpan(0, 0, 0, 30);
+
+    Serial.printf("Compensated time: %04d-%02d-%02d %02d:%02d:%02d\n",
+                  compensatedTime.year(), compensatedTime.month(), compensatedTime.day(),
+                  compensatedTime.hour(), compensatedTime.minute(), compensatedTime.second());
+
+    rtc.adjust(compensatedTime);
 
     // Verify the time was set
     DateTime now = rtc.now();
-    Serial.printf("RTC time after setting: %04d-%02d-%02d %02d:%02d:%02d\n",
+    Serial.printf("Verified time: %04d-%02d-%02d %02d:%02d:%02d\n",
                   now.year(), now.month(), now.day(),
                   now.hour(), now.minute(), now.second());
 }
