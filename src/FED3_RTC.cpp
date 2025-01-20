@@ -5,75 +5,52 @@ bool FED3::initializeRTC()
 {
     Serial.println("Initializing RTC...");
 
-    // Try to initialize RTC multiple times
-    const int maxRetries = 10;
-    const int retryDelay = 100; // ms between retries
-
-    for (int retry = 0; retry < maxRetries; retry++)
+    if (!rtc.begin())
     {
-        if (rtc.begin())
-        {
-            Serial.printf("RTC initialized successfully on attempt %d\n", retry + 1);
+        Serial.println("ERROR: Couldn't find RTC! Check circuit.");
+        return false;
+    }
+    Serial.println("RTC found successfully");
 
 #if defined(ESP32)
-            Serial.println("Starting preferences...");
-            // Single preferences session
-            if (!preferences.begin(PREFS_NAMESPACE, false))
-            {
-                Serial.println("ERROR: Failed to initialize preferences");
-                return false;
-            }
-
-            if (isNewCompilation())
-            {
-                Serial.println("New compilation detected - updating RTC");
-                updateRTC();
-                updateCompilationID();
-            }
-            else
-            {
-                Serial.println("No new compilation detected - using existing RTC time");
-            }
-
-            preferences.end();
-            Serial.println("RTC initialization complete");
-#endif
-            return true;
-        }
-
-        Serial.printf("RTC initialization attempt %d failed, resetting I2C...\n", retry + 1);
-
-#if defined(ESP32)
-        // Aggressive I2C reset
-        Wire.end();
-        pinMode(SDA, OUTPUT); // SDA
-        pinMode(SCL, OUTPUT); // SCL
-        digitalWrite(SDA, HIGH);
-        digitalWrite(SCL, HIGH);
-        delay(20); // Let lines stabilize
-
-        // Toggle clock lines to unlock any stuck devices
-        for (int i = 0; i < 10; i++)
-        {
-            digitalWrite(SCL, LOW);
-            delayMicroseconds(5);
-            digitalWrite(SCL, HIGH);
-            delayMicroseconds(5);
-        }
-
-        // Release the lines and reinit
-        pinMode(SDA, INPUT);
-        pinMode(SCL, INPUT);
-        delay(retryDelay);
-        Wire.begin();
-        Wire.setClock(100000); // 100kHz
-#else
-        delay(retryDelay);
-#endif
+    Serial.println("Starting preferences...");
+    // Single preferences session
+    if (!preferences.begin(PREFS_NAMESPACE, false))
+    {
+        Serial.println("ERROR: Failed to initialize preferences");
+        return false;
     }
 
-    Serial.printf("ERROR: RTC initialization failed after %d attempts\n", maxRetries);
-    return false;
+    if (isNewCompilation())
+    {
+        Serial.println("New compilation detected - updating RTC");
+        updateRTC();
+        updateCompilationID();
+    }
+    else
+    {
+        Serial.println("No new compilation detected - using existing RTC time");
+    }
+
+    preferences.end();
+    Serial.println("RTC initialization complete");
+
+    // Initialize ESP32's internal RTC
+    DateTime now = rtc.now();
+    ESP32Time rtc_internal(0); // offset 0
+    rtc_internal.setTime(
+        now.second(), // seconds
+        now.minute(), // minutes
+        now.hour(),   // hours
+        now.day(),    // day
+        now.month(),  // month
+        now.year(),   // year
+        0             // milliseconds
+    );
+    Serial.println("ESP32 internal RTC synchronized");
+#endif
+
+    return true;
 }
 
 void FED3::adjustRTC(uint32_t timestamp)
@@ -107,20 +84,6 @@ void FED3::dateTime(uint16_t *date, uint16_t *time)
     *date = FAT_DATE(now.year(), now.month(), now.day());
     // return time using FAT_TIME macro to format fields
     *time = FAT_TIME(now.hour(), now.minute(), now.second());
-}
-
-// Read battery level
-void FED3::ReadBatteryLevel()
-{
-#if defined(ESP32)
-    measuredvbat = maxlipo.cellVoltage();
-#elif defined(__arm__)
-    analogReadResolution(10);
-    measuredvbat = analogRead(VBATPIN);
-    measuredvbat *= 2;    // we divided by 2, so multiply back
-    measuredvbat *= 3.3;  // Multiply by 3.3V, our reference voltage
-    measuredvbat /= 1024; // convert to voltage
-#endif
 }
 
 // Get current time

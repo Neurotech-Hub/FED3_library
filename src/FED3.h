@@ -41,6 +41,7 @@ This device includes hardware and code from:
 #include <esp_sleep.h>
 #include "Adafruit_MAX1704X.h"
 #include <Preferences.h>
+#include <ESP32Time.h>
 #elif defined(__arm__)
 #include <ArduinoLowPower.h>
 #endif
