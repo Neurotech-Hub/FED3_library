@@ -426,16 +426,16 @@ void FED3::DisplayMouse()
  * DisplayText("Small Area", 10, 40, true, false, 100, 30);
  * ```
  */
-void FED3::DisplayText(const String &text, int x, int y, bool clear_area = true, bool bold = false, int clear_width = 200, int clear_height = 22)
+void FED3::DisplayText(const String &text, int x, int y, bool clear_area, bool bold, int clear_width, int clear_height)
 {
     if (clear_area)
     {
-        display.fillRect(x, y - 15, clear_width, clear_height, WHITE); // Clear area above text
+        display.clearDisplay();
     }
 
     // Split text into lines
     int currentY = y;
-    int lineHeight = 20; // Adjust based on your font size
+    int lineHeight = 20;
     String remaining = text;
 
     while (remaining.length() > 0)
