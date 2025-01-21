@@ -658,18 +658,3 @@ void FED3::attachWakeupInterrupts()
   LowPower.attachInterruptWakeup(digitalPinToInterrupt(RIGHT_POKE), outsideRightTriggerHandler, CHANGE);
 #endif
 }
-
-void FED3::DisplayBLE(String advName)
-{
-  display.clearDisplay();
-  display.setTextSize(3);
-  display.setTextColor(BLACK);
-  display.setCursor(40, 60);
-  display.println("BLE");
-
-  display.setTextSize(1);
-  display.setCursor(20, 100);
-  display.println(advName);
-
-  display.refresh();
-}

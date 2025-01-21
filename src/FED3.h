@@ -168,7 +168,7 @@ public:
     void DisplayNoProgram();
     void DisplayMinPoke();
     void DisplayMouse();
-    void DisplayBLE(String advName);
+    void DisplayText(const String &text, int x, int y, bool clear_area = true, bool bold = false, int clear_width = 200, int clear_height = 22);
 
     // Startup menu function
     void ClassicMenu();
@@ -312,6 +312,9 @@ public:
     bool isNewCompilation();
     void updateCompilationID();
     void updateRTC();
+
+    // Add to class FED3 definition
+    void DisplayText(const String &text, int x, int y, bool clear_area = true, bool bold = false, int clear_width = 200, int clear_height = 22);
 
 private:
     RTC_PCF8523 rtc;

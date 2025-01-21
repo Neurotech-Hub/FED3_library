@@ -223,20 +223,13 @@ void FED3::DisplayBattery()
 void FED3::DisplaySDError()
 {
     display.clearDisplay();
-    display.setCursor(20, 40);
-    display.println("   Check");
-    display.setCursor(10, 60);
-    display.println("  SD Card!");
-    display.refresh();
+    DisplayText("   Check\n  SD Card!", 20, 40, false); // false = don't clear area
 }
 
 // Display text when FED is clearing a jam
 void FED3::DisplayJamClear()
 {
-    display.fillRect(6, 20, 200, 22, WHITE); // erase the data on screen without clearing the entire screen by pasting a white box over it
-    display.setCursor(6, 36);
-    display.print("Clearing jam");
-    display.refresh();
+    DisplayText("Clearing jam", 6, 36);
 }
 
 // Display pellet retrieval interval
@@ -405,4 +398,76 @@ void FED3::DisplayMouse()
             SetDeviceNumber();
         }
     }
+}
+
+/**
+ * Displays text on the FED3 screen with support for multiple lines and formatting options
+ *
+ * @param text The text to display. Use '\n' for line breaks
+ * @param x The x-coordinate position to start drawing text
+ * @param y The y-coordinate position to start drawing text
+ * @param clear_area Whether to clear the display area before drawing (default: true)
+ * @param bold Whether to draw the text twice with offset for bold effect (default: false)
+ * @param clear_width Width of the area to clear in pixels (default: 200)
+ * @param clear_height Height of the area to clear in pixels (default: 22)
+ *
+ * Example usage:
+ * ```cpp
+ * // Simple single line
+ * DisplayText("Hello", 10, 40);
+ *
+ * // Multi-line text
+ * DisplayText("Line 1\nLine 2", 10, 40);
+ *
+ * // Bold text without clearing area
+ * DisplayText("Important!", 10, 40, false, true);
+ *
+ * // Custom clear area
+ * DisplayText("Small Area", 10, 40, true, false, 100, 30);
+ * ```
+ */
+void FED3::DisplayText(const String &text, int x, int y, bool clear_area = true, bool bold = false, int clear_width = 200, int clear_height = 22)
+{
+    if (clear_area)
+    {
+        display.fillRect(x, y - 15, clear_width, clear_height, WHITE); // Clear area above text
+    }
+
+    // Split text into lines
+    int currentY = y;
+    int lineHeight = 20; // Adjust based on your font size
+    String remaining = text;
+
+    while (remaining.length() > 0)
+    {
+        // Find next line break or end of string
+        int lineBreak = remaining.indexOf('\n');
+        String line;
+
+        if (lineBreak >= 0)
+        {
+            line = remaining.substring(0, lineBreak);
+            remaining = remaining.substring(lineBreak + 1);
+        }
+        else
+        {
+            line = remaining;
+            remaining = "";
+        }
+
+        // Draw the line
+        display.setCursor(x, currentY);
+        display.print(line);
+
+        // If bold, draw again with slight offset
+        if (bold)
+        {
+            display.setCursor(x + 1, currentY);
+            display.print(line);
+        }
+
+        currentY += lineHeight;
+    }
+
+    display.refresh();
 }
