@@ -139,14 +139,6 @@ void FED3::begin()
   CreateFile();
   Serial.println("SD card initialized and file created.");
 
-  // example usage of getMetaValue
-  String subjectId = getMetaValue("subject", "id");
-  if (subjectId.length() > 0)
-  {
-    Serial.print("Subject ID: ");
-    Serial.println(subjectId);
-  }
-
   // Initialize interrupts
   Serial.println("Attaching interrupts...");
   staticFED = this;
@@ -635,24 +627,44 @@ void FED3::softReset()
 void FED3::lowPowerSleep(int sleepMs)
 {
 #if defined(ESP32)
-  // Enable timer wake-up and enter deep sleep
+  // Configure RTC GPIO pullups for wakeup pins
+  rtc_gpio_pullup_en((gpio_num_t)LEFT_POKE);
+  rtc_gpio_pulldown_dis((gpio_num_t)LEFT_POKE);
+  rtc_gpio_pullup_en((gpio_num_t)RIGHT_POKE);
+  rtc_gpio_pulldown_dis((gpio_num_t)RIGHT_POKE);
+
+  // Set wakeup triggers
   esp_sleep_enable_timer_wakeup(static_cast<uint64_t>(sleepMs) * 1000);
+
+  uint64_t gpio_mask = (1ULL << LEFT_POKE) | (1ULL << RIGHT_POKE);
+  esp_sleep_enable_ext1_wakeup(gpio_mask, ESP_EXT1_WAKEUP_ANY_LOW);
+
+  // Enter light sleep
   esp_light_sleep_start();
+
+  // handle pellet well outside of interrupt context
+  if (digitalRead(PELLET_WELL) == HIGH)
+  { // check for pellet
+    PelletAvailable = false;
+  }
 #elif defined(__arm__)
-  // ARM-based boards using Arduino Low Power library
-  LowPower.sleep(sleepMs); // Use the sleep duration directly in milliseconds
+  LowPower.sleep(sleepMs);
 #endif
 }
 
 void FED3::attachWakeupInterrupts()
 {
 #if defined(ESP32)
-  // ESP32: Attach interrupts for each pin
-  attachInterrupt(digitalPinToInterrupt(PELLET_WELL), outsidePelletTriggerHandler, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(LEFT_POKE), outsideLeftTriggerHandler, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(RIGHT_POKE), outsideRightTriggerHandler, CHANGE);
+  // Configure pins with pullup and set to input
+  pinMode(PELLET_WELL, INPUT_PULLUP);
+  pinMode(LEFT_POKE, INPUT_PULLUP);
+  pinMode(RIGHT_POKE, INPUT_PULLUP);
+
+  // Attach interrupts for active LOW detection
+  // attachInterrupt(digitalPinToInterrupt(PELLET_WELL), outsidePelletTriggerHandler, FALLING);
+  attachInterrupt(digitalPinToInterrupt(LEFT_POKE), outsideLeftTriggerHandler, FALLING);
+  attachInterrupt(digitalPinToInterrupt(RIGHT_POKE), outsideRightTriggerHandler, FALLING);
 #elif defined(__arm__)
-  // ARM-based boards: Use Arduino Low Power library to attach wake-up interrupts
   LowPower.attachInterruptWakeup(digitalPinToInterrupt(PELLET_WELL), outsidePelletTriggerHandler, CHANGE);
   LowPower.attachInterruptWakeup(digitalPinToInterrupt(LEFT_POKE), outsideLeftTriggerHandler, CHANGE);
   LowPower.attachInterruptWakeup(digitalPinToInterrupt(RIGHT_POKE), outsideRightTriggerHandler, CHANGE);

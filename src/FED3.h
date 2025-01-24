@@ -39,6 +39,8 @@ This device includes hardware and code from:
 
 #if defined(ESP32)
 #include <esp_sleep.h>
+#include <driver/rtc_io.h> // For RTC GPIO functions
+#include <soc/rtc.h>       // For RTC controller functions
 #include "Adafruit_MAX1704X.h"
 #include <Preferences.h>
 #include <ESP32Time.h>
