@@ -3,8 +3,6 @@
 // New RTC initialization function
 bool FED3::initializeRTC()
 {
-    Serial.println("Initializing RTC...");
-
     if (!rtc.begin())
     {
         Serial.println("ERROR: Couldn't find RTC! Check circuit.");

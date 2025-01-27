@@ -64,7 +64,6 @@ void FED3::Feed(int pulse, bool pixelsoff)
                     rightInterval = (millis() - rightPokeTime);
                     UpdateDisplay();
                     Event = "RightWithPellet";
-
                     logdata();
                 }
             }

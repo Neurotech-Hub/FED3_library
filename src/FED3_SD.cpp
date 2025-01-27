@@ -198,7 +198,12 @@ void FED3::logdata()
     }
 
     // Log library version, session type, device number, and battery voltage
+    // !! temporary debugging
+#if defined(ESP32)
+    logfile.print(ESP.getFreeHeap());
+#else
     logfile.print(VER);
+#endif
     logfile.print(",");
     logfile.print(sessiontype);
     logfile.print(",");
