@@ -136,6 +136,19 @@ void FED3::logdata()
         return;
     }
 
+    DateTime now = rtc.now();
+
+    // new option to create a new file for each day
+    if (createDailyFile == true)
+    {
+        // copied from below for consistency
+        if (filename[9] != now.day() / 10 + '0' || filename[10] != now.day() % 10 + '0')
+        {
+            CreateDataFile();
+            writeHeader();
+        }
+    }
+
     // Fix filename (the .CSV extension can become corrupted) and open file
     filename[16] = '.';
     filename[17] = 'C';
@@ -168,7 +181,6 @@ void FED3::logdata()
     }
 
     // Log data to the file
-    DateTime now = rtc.now();
     logfile.print(now.month());
     logfile.print("/");
     logfile.print(now.day());

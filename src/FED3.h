@@ -252,6 +252,7 @@ public:
     unsigned long currentSecond;
     unsigned long displayupdate;
     String Event = "None"; // What kind of event just happened?
+    bool createDailyFile = false;
 
     // Bandit variables
     int prob_left = 0;
