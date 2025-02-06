@@ -138,17 +138,6 @@ void FED3::logdata()
 
     DateTime now = rtc.now();
 
-    // new option to create a new file for each day
-    if (createDailyFile == true)
-    {
-        // copied from below for consistency
-        if (filename[9] != now.day() / 10 + '0' || filename[10] != now.day() % 10 + '0')
-        {
-            CreateDataFile();
-            writeHeader();
-        }
-    }
-
     // Fix filename (the .CSV extension can become corrupted) and open file
     filename[16] = '.';
     filename[17] = 'C';
@@ -326,6 +315,20 @@ void FED3::logdata()
     Blink(GREEN_LED, 25, 2);
     logfile.sync();  // Use sync() instead of flush() to write data
     logfile.close(); // Close the file
+
+    // new option to create a new file for each day
+    if (createDailyFile == true)
+    {
+        // copied from below for consistency
+        if (filename[9] != now.day() / 10 + '0' || filename[10] != now.day() % 10 + '0')
+        {
+            CreateDataFile();
+            writeHeader();
+            LeftCount = 0;
+            RightCount = 0;
+            PelletCount = 0;
+        }
+    }
 }
 
 // If any errors are detected with the SD card upon boot this function
