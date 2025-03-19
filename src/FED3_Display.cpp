@@ -400,6 +400,21 @@ void FED3::DisplayMouse()
     }
 }
 
+// Display text when FED is clearing a jam
+void FED3::DisplayJammed()
+{
+    display.clearDisplay();
+    display.fillRect(6, 20, 200, 22, WHITE); // erase the data on screen without clearing the entire screen by pasting a white box over it
+    display.setCursor(6, 36);
+    display.print("JAMMED...");
+    display.print("PLEASE CHECK");
+    display.refresh();
+    ReleaseMotor();
+    delay(2); // let things settle
+    lowPowerSleep(2000);
+    DisplayJammed();
+}
+
 /**
  * Displays text on the FED3 screen with support for multiple lines and formatting options
  *

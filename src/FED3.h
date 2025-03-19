@@ -171,6 +171,7 @@ public:
     void DisplayMinPoke();
     void DisplayMouse();
     void DisplayText(const String &text, int x = 10, int y = 40, bool clear_area = true, bool bold = false, int clear_width = 200, int clear_height = 22);
+    void DisplayJammed();
 
     // Startup menu function
     void ClassicMenu();

@@ -166,6 +166,14 @@ void FED3::Feed(int pulse, bool pixelsoff)
                     pelletDispensed = ClearJam();
                 }
             }
+            // New jam detection, needs resolution: https://github.com/KravitzLabDevices/FED3_library/issues/74
+            // if (pelletDispensed == false)
+            // {
+            //     if (numMotorTurns > 100)
+            //     {
+            //         DisplayJammed();
+            //     }
+            // }
         }
     } while (PelletAvailable == false);
 }
