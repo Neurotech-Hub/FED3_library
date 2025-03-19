@@ -319,8 +319,13 @@ void FED3::logdata()
     // new option to create a new file for each day
     if (createDailyFile == true)
     {
-        // copied from below for consistency
-        if (filename[9] != now.day() / 10 + '0' || filename[10] != now.day() % 10 + '0')
+        // Check if month, day, or year has changed
+        if (filename[7] != now.month() / 10 + '0' ||
+            filename[8] != now.month() % 10 + '0' ||
+            filename[9] != now.day() / 10 + '0' ||
+            filename[10] != now.day() % 10 + '0' ||
+            filename[11] != (now.year() - 2000) / 10 + '0' ||
+            filename[12] != (now.year() - 2000) % 10 + '0')
         {
             CreateDataFile();
             writeHeader();
