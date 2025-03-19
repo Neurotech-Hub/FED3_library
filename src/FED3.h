@@ -238,6 +238,7 @@ public:
     int RightCount = 0;
     int PelletCount = 0;
     int BlockPelletCount = 0;
+    int diskDispenseSteps = -300; // Steps for disk rotation during pellet dispensing
     int timeout = 0;
 
     bool countAllPokes = true;

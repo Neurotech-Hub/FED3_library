@@ -13,7 +13,7 @@ void FED3::Feed(int pulse, bool pixelsoff)
 
         if (pelletDispensed == false)
         {
-            pelletDispensed = RotateDisk(-300);
+            pelletDispensed = RotateDisk(diskDispenseSteps);
         }
 
         if (pixelsoff == true)

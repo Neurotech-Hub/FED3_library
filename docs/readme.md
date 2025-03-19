@@ -39,6 +39,7 @@ void loop() {
 - **RightCount**: Int, number of pokes on the right nosepoke, initializes to 0 
 - **rightInterval**: Int, duration of the last riht nosepoke in ms
 - **PelletCount**: Int, total number of pellets dispensed, initializes to 0
+- **diskDispenseSteps**: Int, number of steps for disk rotation during pellet dispensing, default is -300. Negative values rotate counter-clockwise, positive values rotate clockwise.
 - **retInterval**: Int, how long the pellet remained in the well before it was taken in ms. Times out at 60000ms
 - **Event**: String, variable containing which type of event triggered the datalogging, options are Left, Right, or Pellet
 - **EnableSleep**: Boolean, defaults to "true". Set to "false" to disable sleep functionality. This will drain the battery ~5x faster but can be useful when troubleshooting new programs.
@@ -70,6 +71,12 @@ Example: Timeout(10) will make FED unresponsive for 10 seconds when called.
 - **BNC(delay, number)**: Send **number** of pulses of length **delay** from the BNC output port. 
 ```c
 Example: BNC(20, 5) will send five 20ms pulses from the port. 
+```
+
+> Pellet Dispensing Control
+- **diskDispenseSteps**: Control the number of steps for disk rotation during pellet dispensing.
+```c
+Example: fed3.diskDispenseSteps = -400; // Use more steps for larger pellets or different hardware
 ```
 
 > Display functions
