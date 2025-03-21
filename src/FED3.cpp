@@ -652,6 +652,14 @@ void FED3::lowPowerSleep(int sleepMs)
 #endif
 }
 
+void FED3::sleepForever()
+{
+#if defined(ESP32)
+  esp_light_sleep_start();
+#elif defined(__arm__)
+  LowPower.sleep();
+}
+
 void FED3::attachWakeupInterrupts()
 {
 #if defined(ESP32)

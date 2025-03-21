@@ -241,6 +241,7 @@ public:
     int BlockPelletCount = 0;
     int diskDispenseSteps = -300; // Steps for disk rotation during pellet dispensing
     int timeout = 0;
+    int turnsIsJammed = 100;
 
     bool countAllPokes = true;
 
@@ -255,6 +256,7 @@ public:
     unsigned long displayupdate;
     String Event = "None"; // What kind of event just happened?
     bool createDailyFile = false;
+    bool pelletsJammed = false;
 
     // Bandit variables
     int prob_left = 0;
@@ -305,6 +307,7 @@ public:
     void attachWakeupInterrupts();
     void detachWakeupInterrupts();
     int parseIntFromSdFile(SdFile &file);
+    void sleepForever();
 
     // RTC
     void adjustRTC(uint32_t timestamp);

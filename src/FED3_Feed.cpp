@@ -8,19 +8,6 @@ void FED3::Feed(int pulse, bool pixelsoff)
     // Run this loop repeatedly until statement below is false
     bool pelletDispensed = false;
 
-    // New jam detection, needs resolution: https://github.com/KravitzLabDevices/FED3_library/issues/74
-    if (numMotorTurns > 100)
-    {
-        DisplayJammed();
-        detachWakeupInterrupts();
-#if defined(ESP32)
-        esp_light_sleep_start();
-#elif defined(__arm__)
-        LowPower.sleep();
-#endif
-        return;
-    }
-
     do
     {
 
@@ -180,7 +167,31 @@ void FED3::Feed(int pulse, bool pixelsoff)
                 }
             }
         }
-    } while (PelletAvailable == false);
+    } while (PelletAvailable == false && numMotorTurns < turnsIsJammed);
+
+    // New jam detection, needs resolution: https://github.com/KravitzLabDevices/FED3_library/issues/74
+    //
+    if (numMotorTurns >= turnsIsJammed)
+    {
+        Event = "Pellet";
+
+        // calculate IntetPelletInterval
+        DateTime now = rtc.now();
+        interPelletInterval = 0;
+        lastPellet = 0;
+
+        logdata();
+        logdata();
+        pelletsJammed = true;
+    }
+
+    DisplayJammed();
+    detachWakeupInterrupts();
+#if defined(ESP32)
+    esp_light_sleep_start();
+#elif defined(__arm__)
+    LowPower.sleep();
+#endif
 }
 
 // minor movement to clear jam
