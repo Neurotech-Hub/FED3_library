@@ -658,6 +658,7 @@ void FED3::sleepForever()
   esp_light_sleep_start();
 #elif defined(__arm__)
   LowPower.sleep();
+#endif
 }
 
 void FED3::attachWakeupInterrupts()

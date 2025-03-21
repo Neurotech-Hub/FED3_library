@@ -241,7 +241,7 @@ public:
     int BlockPelletCount = 0;
     int diskDispenseSteps = -300; // Steps for disk rotation during pellet dispensing
     int timeout = 0;
-    int turnsIsJammed = 100;
+    int turnsPelletStuck = 100;
 
     bool countAllPokes = true;
 
@@ -256,7 +256,7 @@ public:
     unsigned long displayupdate;
     String Event = "None"; // What kind of event just happened?
     bool createDailyFile = false;
-    bool pelletsJammed = false;
+    bool pelletIsStuck = false;
 
     // Bandit variables
     int prob_left = 0;

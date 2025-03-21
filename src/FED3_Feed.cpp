@@ -69,15 +69,8 @@ void FED3::Feed(int pulse, bool pixelsoff)
             }
 
             // after 60s has elapsed
-            unsigned long pelletWaitStart = millis();
             while (digitalRead(PELLET_WELL) == LOW)
             {
-                if (millis() - pelletWaitStart > 300000)
-                { // 5 minute timeout
-                    Event = "PelletStuck";
-                    logdata();
-                    break;
-                }
                 run();
                 // Log pokes while pellet is present
                 if (digitalRead(LEFT_POKE) == LOW)
@@ -167,31 +160,18 @@ void FED3::Feed(int pulse, bool pixelsoff)
                 }
             }
         }
-    } while (PelletAvailable == false && numMotorTurns < turnsIsJammed);
+    } while (PelletAvailable == false && numMotorTurns < turnsPelletStuck);
 
     // New jam detection, needs resolution: https://github.com/KravitzLabDevices/FED3_library/issues/74
     //
-    if (numMotorTurns >= turnsIsJammed)
+    if (numMotorTurns >= turnsPelletStuck)
     {
-        Event = "Pellet";
-
-        // calculate IntetPelletInterval
-        DateTime now = rtc.now();
-        interPelletInterval = 0;
-        lastPellet = 0;
-
-        logdata();
-        logdata();
-        pelletsJammed = true;
+        // this used to be a 5 minute timeout, but now it's just a log based on numMotorTurns
+        Event = "PelletStuck";
+        pelletIsStuck = true;
+        logdata(); // will contain MotorTurns column with numMotorTurns
     }
-
-    DisplayJammed();
-    detachWakeupInterrupts();
-#if defined(ESP32)
-    esp_light_sleep_start();
-#elif defined(__arm__)
-    LowPower.sleep();
-#endif
+    // not sketch can access pelletIsStuck variable and decide what to do
 }
 
 // minor movement to clear jam
