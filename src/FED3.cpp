@@ -670,3 +670,15 @@ void FED3::attachWakeupInterrupts()
   LowPower.attachInterruptWakeup(digitalPinToInterrupt(RIGHT_POKE), outsideRightTriggerHandler, CHANGE);
 #endif
 }
+
+void FED3::detachWakeupInterrupts()
+{
+#if defined(ESP32)
+  detachInterrupt(digitalPinToInterrupt(LEFT_POKE));
+  detachInterrupt(digitalPinToInterrupt(RIGHT_POKE));
+#elif defined(__arm__)
+  LowPower.detachInterruptWakeup(digitalPinToInterrupt(PELLET_WELL));
+  LowPower.detachInterruptWakeup(digitalPinToInterrupt(LEFT_POKE));
+  LowPower.detachInterruptWakeup(digitalPinToInterrupt(RIGHT_POKE));
+#endif
+}

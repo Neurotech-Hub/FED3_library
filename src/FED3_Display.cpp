@@ -411,8 +411,6 @@ void FED3::DisplayJammed()
     display.refresh();
     ReleaseMotor();
     delay(2); // let things settle
-    lowPowerSleep(2000);
-    DisplayJammed();
 }
 
 /**

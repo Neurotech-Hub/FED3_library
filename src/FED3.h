@@ -303,6 +303,7 @@ public:
     void softReset();
     void lowPowerSleep(int sleepMs);
     void attachWakeupInterrupts();
+    void detachWakeupInterrupts();
     int parseIntFromSdFile(SdFile &file);
 
     // RTC
