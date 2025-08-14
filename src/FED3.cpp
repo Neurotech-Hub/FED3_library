@@ -688,8 +688,8 @@ void FED3::detachWakeupInterrupts()
   detachInterrupt(digitalPinToInterrupt(LEFT_POKE));
   detachInterrupt(digitalPinToInterrupt(RIGHT_POKE));
 #elif defined(__arm__)
-  LowPower.detachInterruptWakeup(digitalPinToInterrupt(PELLET_WELL));
-  LowPower.detachInterruptWakeup(digitalPinToInterrupt(LEFT_POKE));
-  LowPower.detachInterruptWakeup(digitalPinToInterrupt(RIGHT_POKE));
+  // ArduinoLowPower doesn't provide detachInterruptWakeup method
+  // The interrupts are automatically managed by the library
+  // No action needed for ARM platforms
 #endif
 }

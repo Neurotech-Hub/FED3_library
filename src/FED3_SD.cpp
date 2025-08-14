@@ -420,8 +420,7 @@ String FED3::getMetaValue(const char *rootKey, const char *subKey)
         return "";
     }
 
-    const size_t capacity = JSON_OBJECT_SIZE(3) + 120; // Increased for nested objects
-    DynamicJsonDocument doc(capacity);
+    JsonDocument doc;
 
     DeserializationError error = deserializeJson(doc, metaFile);
     metaFile.close();
