@@ -136,7 +136,6 @@ public:
     void CreateDataFile();
     void writeHeader();
     void writeConfigFile();
-    void writeFEDmode();
     void error(ErrorCode errorCode);
     void getFilename(char *filename);
     bool suppressSDerrors = false; // set to true to suppress SD card errors at startup
@@ -174,11 +173,14 @@ public:
     void DisplayText(const String &text, int x = 10, int y = 40, bool clear_area = true, bool bold = false, int clear_width = 200, int clear_height = 22);
     void DisplayJammed();
 
-    // Startup menu function
-    void ClassicMenu();
-    void StartScreen();
-    void FED3MenuScreen();
-    void SetClock();
+    // Menu system functions
+    void ClassicMenu();    // Classic FED3 menu
+    void StartScreen();    // Default startup screen
+    void FED3MenuScreen(); // FED3 menu interface
+    void psygeneMenu();    // Psygene-specific menu
+    void SetClock();       // Clock setting interface
+    void SelectMode();     // Mode selection handling
+    void writeFEDmode();   // Save mode settings
 
     // BNC input/output
     void ReadBNC(bool blinkGreen);
@@ -189,7 +191,6 @@ public:
     int numMotorTurns = 0;
 
     // Set FED
-    void SelectMode();
     void SetDeviceNumber();
 
     // Stimuli
@@ -259,11 +260,17 @@ public:
     bool createDailyFile = false;
     bool pelletIsStuck = false;
 
-    // Bandit variables
-    int prob_left = 0;
-    int prob_right = 0;
-    int pelletsToSwitch = 0;
-    bool allowBlockRepeat = false;
+    // Bandit task variables and functions
+    int prob_left = 0;             // Probability of reward on left poke (0-100)
+    int prob_right = 0;            // Probability of reward on right poke (0-100)
+    int pelletsToSwitch = 0;       // Number of pellets before probability switch
+    bool allowBlockRepeat = false; // Whether same probabilities can repeat in next block
+    // Block pellet count is declared in event counters section
+
+    // Bandit task functions
+    void updateBanditBlock();                                       // Handle block transitions and probability updates
+    bool handleBanditPoke(bool isLeftPoke);                         // Handle poke behavior for Bandit task
+    void initBanditTask(int pellets_per_block, bool allow_repeats); // Initialize Bandit settings
 
     // timing variables
     int retInterval = 0;
@@ -283,6 +290,7 @@ public:
     void enableSleep();
     bool ClassicFED3 = false;
     bool FED3Menu = false;
+    bool psygene = false; // Psygene menu mode flag
     bool tempSensor = false;
 
     int EndTime = 0;
