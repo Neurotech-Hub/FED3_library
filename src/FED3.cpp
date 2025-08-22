@@ -295,7 +295,7 @@ FED3::FED3(String sketch)
 // Menu functions moved to FED3_Menus.cpp
 
 // Read battery level
-void FED3::ReadBatteryLevel()
+int FED3::ReadBatteryLevel()
 {
 #if defined(ESP32)
   measuredvbat = maxlipo.cellVoltage();
@@ -308,6 +308,7 @@ void FED3::ReadBatteryLevel()
   measuredvbat /= 1024; // convert to voltage
   batteryPercent = measuredvbat / 3.3 * 100;
 #endif
+  return (int)measuredvbat;
 }
 
 /******************************************************************************************************************************************************

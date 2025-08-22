@@ -144,7 +144,7 @@ public:
     // Battery
     float measuredvbat = 1.0;
     float batteryPercent = 0.0; // Battery percentage for ESP32 devices
-    void ReadBatteryLevel();
+    int ReadBatteryLevel();
 
     // Neopixel
     void pixelsOn(int R, int G, int B, int W);

@@ -21,6 +21,17 @@ FED3 fed3(sketch);     // Start the FED3 object
 #include <Hublink.h>         // Hublink Library
 Hublink hublink(cardSelect); // optional (cs, clkFreq) parameters
 
+// Timing variables for HubLink operations
+unsigned long lastHublinkUpdate = 0;
+const unsigned long HUBLINK_UPDATE_INTERVAL = 10000; // 10 seconds in milliseconds
+
+// Hublink callback function to handle timestamp
+void onTimestampReceived(uint32_t timestamp)
+{
+  Serial.print("Received timestamp: " + String(timestamp));
+  fed3.adjustRTC(timestamp);
+}
+
 void setup()
 {
   // turn on serial debugger
@@ -35,6 +46,7 @@ void setup()
   if (hublink.begin())
   {
     Serial.println("✓ Hublink.");
+    hublink.setTimestampCallback(onTimestampReceived);
   }
   else
   {
@@ -60,5 +72,21 @@ void loop()
     fed3.logRightPoke(); // Log right poke
   }
 
-  hublink.sync(); // only blocks when ready
+  // Update HubLink variables every 10 seconds
+  if (millis() - lastHublinkUpdate >= HUBLINK_UPDATE_INTERVAL)
+  {
+    if (fed3.pelletIsStuck)
+    {
+      hublink.setAlert("Pellet Jammed!");
+    }
+    hublink.setBatteryLevel(fed3.ReadBatteryLevel());
+    lastHublinkUpdate = millis();
+  }
+
+  // run syn every loop, only blocks when ready
+  if (hublink.sync())
+  {
+    fed3.Event = "HublinkSync";
+    fed3.logdata();
+  }
 }
